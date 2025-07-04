@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Property {
+  id           String           @id @default(cuid())
+  title        String
+  category     Category
+  propertyType PropertyType
+  location     String
+  address      String
+  creatorId    String
+  updatedById  String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  creator      User             @relation("CreatedProperties", fields: [creatorId], references: [id])
+  updatedBy    User             @relation("UpdatedProperties", fields: [updatedById], references: [id])
+  details      PropertyDetails?
+  visitors     Visitor[]
+}
+
+model PropertyDetails {
+  id           String      @id @default(cuid())
+  propertyId   String      @unique
+  totalArea    Float
+  bedrooms     Int
+  bathrooms    Int
+  parkingSpots Int
+  amenities    String[]
+  petsAllowed  PetOption[]
+  description  String
+  price        Float
+  images       String[]
+  videoLink    String
+  property     Property    @relation(fields: [propertyId], references: [id])
+}
+
+model Visitor {
+  id         String   @id @default(cuid())
+  email      String
+  favorite   Boolean  @default(false)
+  visitDate  DateTime
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  emailVerified DateTime?
+  image         String?
+  name          String
+  accounts      Account[]
+  properties    Property[] @relation("CreatedProperties")
+  updatedProps  Property[] @relation("UpdatedProperties")
+  sessions      Session[]
+
+  //2FA
+  twoFactorCode    String?
+  twoFactorExpires DateTime?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+enum Category {
+  RENT
+  SALE
+}
+
+enum PropertyType {
+  APPARTMENT
+  HOUSE
+  COMMERCIAL
+  OFF_PLAN
+}
+
+enum PetOption {
+  CATS_ALLOWED
+  DOGS_ALLOWED
+}
