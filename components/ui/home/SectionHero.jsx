@@ -6,7 +6,7 @@ import { ChevronRight, ChevronLeft } from "lucide-react";
 import img1 from "@/public/hero-1.jpg";
 import img2 from "@/public/hero-2.jpg";
 import img3 from "@/public/hero-3.jpg";
-import img4 from "@/public/default.jpg";
+import img4 from "@/public/hero-4.jpg";
 
 const billboard = [
   {
@@ -15,7 +15,7 @@ const billboard = [
     description:
       "Browse curated listings that match your lifestyle, budget, and location needs. Whether you're a first-time buyer or looking for your next dream home, we make the search seamless.",
     button: "Start your Journey",
-    path: "#",
+    path: "#new_listings", // This will scroll to the section with id="newListings"
   },
   {
     title: "Buy, Rent, or Sell — All in One Place",
@@ -23,15 +23,23 @@ const billboard = [
     description:
       "From buying and renting to selling your property, we simplify every step. Trust our expert guidance, market insight, and personalized support to get the best value — whether you're moving in or moving on.",
     button: "Get Started",
-    path: "#",
+    path: "#cta", // Example of another section to scroll to
+  },
+  {
+    title: "Homes We Think You’ll Love",
+    image: img4,
+    description:
+      "Spacious, safe, and full of heart—these homes are thoughtfully selected to fit your family’s needs and lifestyle.",
+    button: "Browse Featured Homes",
+    path: "#listings", // This remains a page navigation
   },
   {
     title: "Make Smart Real Estate Moves",
     image: img3,
     description:
-      "Whether you're buying, selling, or renting, we provide data-driven insights and expert guidance to help you make informed decisions with confidence.",
-    button: "Talk to Us",
-    path: "/contact",
+      "Wondering how to get started? Our simple 4-step process makes buying, renting, or selling property easy and stress-free. Here’s how it works.",
+    button: "Show me how",
+    path: "#steps", // This remains a page navigation
   },
 ];
 
@@ -40,6 +48,21 @@ export default function HeroSection() {
   const [isPaused, setIsPaused] = useState(false);
   const [showNavButtons, setShowNavButtons] = useState(false);
   const containerRef = useRef(null);
+
+  // Handle hash link clicks for smooth scrolling
+  const handleLinkClick = (e, path) => {
+    if (path.startsWith("#")) {
+      e.preventDefault();
+      const element = document.getElementById(path.substring(1));
+      if (element) {
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }
+    // Regular links will proceed normally
+  };
 
   // Auto slide every 5 seconds (pause on hover)
   useEffect(() => {
@@ -92,6 +115,7 @@ export default function HeroSection() {
 
   return (
     <section
+      id="hero"
       className="relative h-screen overflow-hidden"
       onMouseEnter={() => {
         setIsPaused(true);
@@ -129,11 +153,12 @@ export default function HeroSection() {
               <p className="text-lg md:text-xl">{item.description}</p>
 
               <div className="mt-3">
-                <Link href={item.path}>
-                  <button className="px-8 py-4 rounded-lg bg-gradient-to-b from-blue-600 to to-blue-500 cursor-pointer text-pretty  font-sans hover:bg-blue-600">
-                    {item.button}
-                  </button>
-                </Link>
+                <button
+                  onClick={(e) => handleLinkClick(e, item.path)}
+                  className="px-8 py-4 rounded-lg bg-gradient-to-b from-blue-600 to to-blue-500 cursor-pointer text-pretty  font-sans hover:bg-blue-600"
+                >
+                  {item.button}
+                </button>
               </div>
             </div>
           </div>
@@ -174,9 +199,9 @@ export default function HeroSection() {
               <li key={index}>
                 <button
                   onClick={() => scrollToSlide(index)}
-                  className={`block w-5 h-5 rounded-full transition-all cursor-pointer ${
+                  className={`block w-4 h-4 rounded-full transition-all cursor-pointer ${
                     index === currentIndex
-                      ? "bg-gradient-to-b from-red-600 to to-red-500 w-5 h-5 transition-transform ease-linear duration-200 "
+                      ? "bg-gradient-to-b from-red-600 to to-red-500 w-4 h-4 transition-transform ease-linear duration-200 "
                       : "bg-white/50"
                   }`}
                   aria-current={index === currentIndex}

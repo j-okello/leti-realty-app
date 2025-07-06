@@ -1,24 +1,23 @@
-// components/NavBarMenu.js
 "use client";
 import React, { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { User } from "lucide-react";
 import { CiMenuFries } from "react-icons/ci";
 import letiLogo from "@/public/letiLogo.svg";
-import letiLogoInactive from "@/public/letiLogoInactive.svg";
 import { RiCloseLargeFill } from "react-icons/ri";
 
 const menu = [
   { name: "Home", path: "/" },
   { name: "About", path: "/about" },
-  { name: "Property for Sale", path: "/sale" },
-  { name: "Property for Rent", path: "/rent" },
+  { name: "Properties", path: "/sale" },
+  { name: "Contact", path: "/contact" },
 ];
 
 export default function NavBarMenu() {
   const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -30,9 +29,33 @@ export default function NavBarMenu() {
   }, [pathname]);
 
   const isHeroPage = pathname === "/";
+
+  // Smooth scroll handler for same-page navigation
+  const handleSmoothNavigation = (e, path) => {
+    if (pathname === path.split("#")[0]) {
+      e.preventDefault();
+      const targetId = path.split("#")[1];
+      if (targetId) {
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 80, // Adjust for header height
+            behavior: "smooth",
+          });
+        }
+      } else {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
+    }
+    setMobileMenuOpen(false);
+  };
+
   return (
     <nav
-      className={`flex items-center justify-between mx-auto max-w-full md:px-4 sm:px-6 lg:px-8 fixed top-0 right-0 start-0 z-50 transition-all duration-300 ${
+      className={`flex items-center justify-between mx-auto max-w-full md:px-4 sm:px-6 lg:px-8 fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
         isHeroPage
           ? scrolled
             ? "bg-white shadow-lg"
@@ -41,13 +64,22 @@ export default function NavBarMenu() {
       }`}
       aria-label="Global"
     >
-      <div className="flex lg:flex-1 ">
-        <Link href="/" className="-m-0.5 p-4">
-          <span className="sr-only">LETI REALTY</span>
+      {/* Logo */}
+      <div className="flex lg:flex-1">
+        <Link
+          href="/"
+          className="-m-0.5 p-4"
+          onClick={(e) => {
+            if (pathname === "/") {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+        >
           <Image
-            src={scrolled ? letiLogo : letiLogo}
+            src={letiLogo}
             alt="Leti Realty"
-            className="h-15 w-auto "
+            className="h-15 w-auto"
             width={120}
             height={40}
           />
@@ -61,7 +93,6 @@ export default function NavBarMenu() {
           type="button"
           className="-m-2.5 inline-flex items-center justify-center rounded-md p-5"
         >
-          <span className="sr-only">Open main menu</span>
           <CiMenuFries
             className={`text-2xl ${isHeroPage ? (scrolled ? "text-blue-950" : "text-white") : "text-blue-900"} hover:text-red-500`}
           />
@@ -74,9 +105,8 @@ export default function NavBarMenu() {
         role="dialog"
         aria-modal="true"
       >
-        {/* Background backdrop */}
         <div
-          className="fixed inset-0 bg-black/50 "
+          className="fixed inset-0 bg-black/50"
           onClick={() => setMobileMenuOpen(false)}
         ></div>
 
@@ -96,7 +126,6 @@ export default function NavBarMenu() {
               onClick={() => setMobileMenuOpen(false)}
               className="-m-2.5 rounded-md p-2.5 text-blue-900 cursor-pointer hover:text-red-600"
             >
-              <span className="sr-only">Close menu</span>
               <RiCloseLargeFill size={20} />
             </button>
           </div>
@@ -107,8 +136,8 @@ export default function NavBarMenu() {
                   <Link
                     key={index}
                     href={m.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-blue-900 hover:bg-blue-100 "
+                    onClick={(e) => handleSmoothNavigation(e, m.path)}
+                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-blue-900 hover:bg-blue-100"
                   >
                     {m.name}
                   </Link>
@@ -137,6 +166,7 @@ export default function NavBarMenu() {
           <Link
             key={index}
             href={m.path}
+            onClick={(e) => handleSmoothNavigation(e, m.path)}
             className={`text-md font-sans text-pretty font-medium hover:underline underline-offset-[20px] decoration-3 ${
               isHeroPage
                 ? scrolled
@@ -150,6 +180,7 @@ export default function NavBarMenu() {
         ))}
       </div>
 
+      {/* Desktop sign-in */}
       <div className="hidden lg:flex lg:flex-1 lg:justify-end items-center gap-2">
         <User
           className={

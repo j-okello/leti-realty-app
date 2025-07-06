@@ -86,14 +86,14 @@ export default function Description() {
   }, [controls, inView]);
 
   return (
-    <motion.section
-      id="catalog"
+    <section
+      id="steps"
       ref={ref}
       initial="hidden"
       animate={controls}
       variants={containerVariants}
     >
-      <div className="bg-white  sm:py-32">
+      <motion.div className="bg-white  sm:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           {/* Header section with animation */}
           <motion.div
@@ -153,7 +153,7 @@ export default function Description() {
             </dl>
           </motion.div>
         </div>
-      </div>
-    </motion.section>
+      </motion.div>
+    </section>
   );
 }

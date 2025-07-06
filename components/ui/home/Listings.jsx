@@ -91,76 +91,78 @@ export default function CardContainer({ property }) {
   };
 
   return (
-    <ContentContainer
-      sub_title="Explore"
-      title={heading}
-      description="Explore a handpicked selection of distinguished homes, tailored to meet the highest standards of luxury, lifestyle, and location."
-    >
-      {/* Wrap the slider container with motion.div */}
-      <motion.div
-        ref={ref}
-        initial="hidden"
-        animate={controls}
-        variants={fadeVariants}
-        className="relative overflow-hidden"
+    <section id="listings">
+      <ContentContainer
+        sub_title="Explore"
+        title={heading}
+        description="Explore a handpicked selection of distinguished homes, tailored to meet the highest standards of luxury, lifestyle, and location."
       >
-        {/* Original Slider Container */}
-        <div
-          className="flex transition-transform duration-500 ease-in-out"
-          style={{
-            transform: `translateX(-${(100 / property.length) * currentIndex}%)`,
-            width: `${(100 / visibleCards) * property.length}%`,
-          }}
+        {/* Wrap the slider container with motion.div */}
+        <motion.div
+          ref={ref}
+          initial="hidden"
+          animate={controls}
+          variants={fadeVariants}
+          className="relative overflow-hidden"
         >
-          {property.map((p, index) => (
-            <div
-              key={p.id || index}
-              className="px-2"
-              style={{ flex: `0 0 ${100 / property.length}%` }}
-            >
-              <CardUI property={p} />
-            </div>
-          ))}
-        </div>
-
-        {/* Controls - unchanged */}
-        {property.length > visibleCards && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute top-1/3 left-4 transform -translate-y-1/3 bg-white/80 p-2 rounded-full z-30 shadow-lg cursor-pointer hover:bg-white transition-colors"
-              aria-label="Previous slide"
-            >
-              <GrPrevious className="text-blue-900 hover:text-red-600 text-lg" />
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute top-1/3 right-4 transform -translate-y-1/3 bg-white/80 p-2 rounded-full z-30 shadow-lg cursor-pointer hover:bg-white transition-colors"
-              aria-label="Next slide"
-            >
-              <GrNext className="text-blue-900 hover:text-red-600" />
-            </button>
-          </>
-        )}
-
-        {/* Dots - unchanged */}
-        {property.length > visibleCards && (
-          <div className="flex justify-center mt-6 gap-2">
-            {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
-                  index === currentIndex
-                    ? "w-10 bg-blue-900"
-                    : "w-3 bg-gray-300"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
+          {/* Original Slider Container */}
+          <div
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{
+              transform: `translateX(-${(100 / property.length) * currentIndex}%)`,
+              width: `${(100 / visibleCards) * property.length}%`,
+            }}
+          >
+            {property.map((p, index) => (
+              <div
+                key={p.id || index}
+                className="px-2"
+                style={{ flex: `0 0 ${100 / property.length}%` }}
+              >
+                <CardUI property={p} />
+              </div>
             ))}
           </div>
-        )}
-      </motion.div>
-    </ContentContainer>
+
+          {/* Controls - unchanged */}
+          {property.length > visibleCards && (
+            <>
+              <button
+                onClick={prevSlide}
+                className="absolute top-1/3 left-4 transform -translate-y-1/3 bg-white/80 p-2 rounded-full z-30 shadow-lg cursor-pointer hover:bg-white transition-colors"
+                aria-label="Previous slide"
+              >
+                <GrPrevious className="text-blue-900 hover:text-red-600 text-lg" />
+              </button>
+              <button
+                onClick={nextSlide}
+                className="absolute top-1/3 right-4 transform -translate-y-1/3 bg-white/80 p-2 rounded-full z-30 shadow-lg cursor-pointer hover:bg-white transition-colors"
+                aria-label="Next slide"
+              >
+                <GrNext className="text-blue-900 hover:text-red-600" />
+              </button>
+            </>
+          )}
+
+          {/* Dots - unchanged */}
+          {property.length > visibleCards && (
+            <div className="flex justify-center mt-6 gap-2">
+              {Array.from({ length: maxIndex + 1 }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`h-2 rounded-full transition-all cursor-pointer ${
+                    index === currentIndex
+                      ? "w-10 bg-blue-600"
+                      : "w-3 bg-gray-300"
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </ContentContainer>
+    </section>
   );
 }
