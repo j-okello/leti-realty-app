@@ -14,7 +14,7 @@ const info = [
   {
     title: "Get in touch",
     description:
-      "Have a question or ready to make your next move? We’d love to hear from you. Reach out today — your real estate journey starts here.",
+      "Have a question or ready to make your next move? We'd love to hear from you. Reach out today — your real estate journey starts here.",
     location: "West Park Towers, Westlands, Nairobi, Kenya",
     phone: "+254 123 456 789",
     mail: "info@letirealty.com",
@@ -22,7 +22,8 @@ const info = [
 ];
 
 export default function Contact() {
-  const [agreed, setAgreed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -70,52 +71,81 @@ export default function Contact() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitMessage("");
+
     console.log("Form submission started");
     console.log("Current formData:", formData);
 
     const isValid = validateForm();
     console.log("Form validation result:", isValid);
 
-    if (isValid) {
-      console.log("Form is valid, processing...");
+    if (!isValid) {
+      console.log("Form validation failed");
+      console.log("Current errors:", errors);
+      setIsSubmitting(false);
+      return;
+    }
 
-      // Check if we have phone data
-      if (!formData.phone.number || !formData.phone.code) {
-        console.log("Missing phone data, submitting without phone formatting");
-        console.log("Form submitted:", formData);
-        // Submit to your API here
-        return;
-      }
+    try {
+      console.log("Form is valid, submitting to API...");
 
-      // Format the final phone number
-      try {
-        const phoneUtil = PhoneNumberUtil.getInstance();
-        const phoneNumber = phoneUtil.parse(
-          formData.phone.number,
-          formData.phone.code
-        );
-        // Validate the phone number
-        if (!phoneUtil.isValidNumber(phoneNumber)) {
-          throw new Error("Invalid phone number");
-        }
-        const formattedData = {
-          ...formData,
-          phone: {
+      // Format the phone number for submission
+      let phoneData = formData.phone;
+      if (formData.phone.number && formData.phone.code) {
+        try {
+          const phoneUtil = PhoneNumberUtil.getInstance();
+          const phoneNumber = phoneUtil.parse(
+            formData.phone.number,
+            formData.phone.code
+          );
+
+          if (!phoneUtil.isValidNumber(phoneNumber)) {
+            throw new Error("Invalid phone number");
+          }
+
+          phoneData = {
+            ...formData.phone,
             e164: phoneUtil.format(phoneNumber, PhoneNumberFormat.E164),
             international: phoneUtil.format(
               phoneNumber,
               PhoneNumberFormat.INTERNATIONAL
             ),
             national: phoneUtil.format(phoneNumber, PhoneNumberFormat.NATIONAL),
-            code: formData.phone.code,
-            phoneCode: formData.phone.phoneCode,
-            number: formData.phone.number,
-          },
-        };
-        console.log("Form submitted with formatted phone:", formattedData);
-        // Submit to your API here
+          };
+        } catch (error) {
+          console.error("Error formatting phone number:", error);
+          setErrors((prev) => ({
+            ...prev,
+            phone: "Invalid phone number format",
+          }));
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const submissionData = {
+        ...formData,
+        phone: phoneData,
+      };
+
+      console.log("Submitting formatted data:", submissionData);
+
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        console.log("Form submitted successfully:", result);
+        setSubmitMessage("Thank you! Your message has been sent successfully.");
 
         // Reset form after successful submission
         setFormData({
@@ -126,18 +156,20 @@ export default function Contact() {
           message: "",
           agreeToPolicy: false,
         });
-      } catch (error) {
-        console.error("Error formatting phone number:", error);
-        console.log("Submitting without phone formatting due to error");
-        console.log("Form submitted:", formData);
-        setErrors((prev) => ({
-          ...prev,
-          phone: "Invalid phone number format",
-        }));
+        setErrors({});
+      } else {
+        console.error("API error:", result);
+        setSubmitMessage(
+          result.error || "An error occurred while submitting the form."
+        );
       }
-    } else {
-      console.log("Form validation failed");
-      console.log("Current errors:", errors);
+    } catch (error) {
+      console.error("Submission error:", error);
+      setSubmitMessage(
+        "An error occurred while submitting the form. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -184,7 +216,7 @@ export default function Contact() {
                   autoComplete="text"
                   value={formData.firstName}
                   onChange={handleChange}
-                  disabled={false}
+                  disabled={isSubmitting}
                   errors={errors}
                 />
 
@@ -198,7 +230,7 @@ export default function Contact() {
                     autoComplete="text"
                     value={formData.lastName}
                     onChange={handleChange}
-                    disabled={false}
+                    disabled={isSubmitting}
                     errors={errors}
                   />
                 </div>
@@ -212,7 +244,7 @@ export default function Contact() {
                     autoComplete="email"
                     value={formData.email}
                     onChange={handleChange}
-                    disabled={false}
+                    disabled={isSubmitting}
                     errors={errors}
                   />
                 </div>
@@ -221,6 +253,7 @@ export default function Contact() {
                     onPhoneChange={handlePhoneChange}
                     initialValue={formData.phone}
                     errors={errors}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -233,6 +266,7 @@ export default function Contact() {
                       value={formData.message}
                       onChange={handleChange}
                       placeholder="Type your message here..."
+                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
@@ -244,10 +278,27 @@ export default function Contact() {
                     }
                     errors={errors}
                     link="/privacy-policy"
+                    disabled={isSubmitting}
                   />
                 </Field>
                 <div className="sm:col-span-2 mt-4">
-                  <Submit />
+                  <Submit disabled={isSubmitting} />
+                  {isSubmitting && (
+                    <p className="mt-2 text-sm text-blue-600">
+                      Submitting your message...
+                    </p>
+                  )}
+                  {submitMessage && (
+                    <p
+                      className={`mt-2 text-sm ${
+                        submitMessage.includes("successfully")
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {submitMessage}
+                    </p>
+                  )}
                 </div>
               </div>
             </form>

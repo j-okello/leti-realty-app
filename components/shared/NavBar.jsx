@@ -11,7 +11,7 @@ import { RiCloseLargeFill } from "react-icons/ri";
 const menu = [
   { name: "Home", path: "/" },
   { name: "About", path: "/about" },
-  { name: "Properties", path: "/sale" },
+  { name: "Properties", path: "/catalog" },
   { name: "Contact", path: "/contact" },
 ];
 

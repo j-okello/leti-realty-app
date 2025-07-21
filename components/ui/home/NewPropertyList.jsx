@@ -85,9 +85,11 @@ export default function NewPropertyCard({ property = [] }) {
           })}
           <button className="flex flex-col items-center justify-center px-4 py-3 rounded-lg transition-all duration-200 ease-in-out min-w-[100px] cursor-pointer border">
             <BsFillHousesFill className="text-2xl mb-1 text-blue-900 hover:text-blue-600" />
-            <span className="text-xs ext-gray-700 group-hover:text-blue-600">
-              view more
-            </span>
+            <Link href="/catalog">
+              <span className="text-xs ext-gray-700 group-hover:text-blue-600">
+                view more
+              </span>
+            </Link>
           </button>
         </div>
 
@@ -118,9 +120,11 @@ export default function NewPropertyCard({ property = [] }) {
                 <span className="text-sm font-medium px-2 py-1 bg-red-600 rounded-md">
                   {filteredProperties[0].category || "Property"}
                 </span>
-                <h2 className="text-3xl font-bold mb-3 mt-2">
-                  {filteredProperties[0].title || "New Property"}
-                </h2>
+                <Link href="#">
+                  <h2 className="text-3xl font-bold mb-3 mt-2 hover:underline underline-offset-3 cursor-pointer">
+                    {filteredProperties[0].title || "New Property"}
+                  </h2>
+                </Link>
                 <div className="flex items-center gap-4 mb-3">
                   {filteredProperties[0].location && (
                     <span className="flex items-center gap-1 text-sm">
@@ -159,9 +163,11 @@ export default function NewPropertyCard({ property = [] }) {
                       <span className="text-xs font-medium px-2 py-1 bg-red-600 rounded-md">
                         {property.category || "Property"}
                       </span>
-                      <h3 className="text-xl font-semibold mb-1 mt-1">
-                        {property.title || `Property ${index + 1}`}
-                      </h3>
+                      <Link href="">
+                        <h3 className="text-xl font-semibold mb-1 mt-1 hover:underline underline-offset-3">
+                          {property.title || `Property ${index + 1}`}
+                        </h3>
+                      </Link>
                       <div className="flex items-center gap-3 text-sm mb-2">
                         {property.beds && (
                           <span className="flex items-center gap-1">

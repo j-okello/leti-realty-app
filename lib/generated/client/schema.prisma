@@ -8,37 +8,117 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Property {
-  id           String           @id @default(cuid())
-  title        String
-  category     Category
-  propertyType PropertyType
-  location     String
-  address      String
-  creatorId    String
-  updatedById  String
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  creator      User             @relation("CreatedProperties", fields: [creatorId], references: [id])
-  updatedBy    User             @relation("UpdatedProperties", fields: [updatedById], references: [id])
-  details      PropertyDetails?
-  visitors     Visitor[]
+// Contact Form
+model ContactForm {
+  id            String       @id @default(cuid())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  firstName     String
+  lastName      String
+  email         String       @unique
+  message       String
+  agreeToPolicy Boolean
+  phone         PhoneNumber? @relation(fields: [phoneId], references: [id], onDelete: Cascade)
+  phoneId       String?      @unique
 }
 
-model PropertyDetails {
-  id           String      @id @default(cuid())
-  propertyId   String      @unique
-  totalArea    Float
-  bedrooms     Int
-  bathrooms    Int
-  parkingSpots Int
-  amenities    String[]
-  petsAllowed  PetOption[]
-  description  String
-  price        Float
-  images       String[]
-  videoLink    String
-  property     Property    @relation(fields: [propertyId], references: [id])
+// Contact PhoneNumber
+model PhoneNumber {
+  id            String       @id @default(cuid())
+  code          String
+  phoneCode     String
+  number        String
+  fullNumber    String
+  contactForm   ContactForm? @relation
+  contactFormId String?      @unique
+}
+
+// PSRF Property Sale Request Form Model
+model PropertySaleRequest {
+  id               String           @id @default(cuid())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  fullName         String
+  phone            String
+  email            String           @unique
+  propertyAddress  String
+  propertyType     PropertyType
+  other            String? // Optional field for custom property types
+  bedrooms         Int
+  bathrooms        Int
+  squareFootage    Int
+  reasonForSelling ReasonForSelling
+  timeline         Timeline
+  additionalInfo   String?
+  agreeToPolicy    Boolean
+}
+
+// Property Models
+model Property {
+  id            Int              @id @default(autoincrement())
+  adNumber      String           @unique
+  title         String
+  description   String
+  image         String // main image URL
+  price         Float // Changed from String to Float for numerical operations
+  location      String
+  beds          Int
+  baths         Int
+  sqft          Int
+  category      Category
+  propertyType  PropertyType     @map("property_type")
+  status        PropertyStatus[]
+  parkingSpace  Int              @map("parkingspace")
+  petsAllowed   Boolean          @map("petsallowed")
+  verified      Boolean
+  isNew         Boolean          @map("isnew")
+  hasVideo      Boolean          @map("hasvideo")
+  views         Int              @default(0)
+  publishedDate DateTime         @map("publisheddate")
+  createdAt     DateTime         @default(now())
+
+  // Relations
+  images      PropertyImage[]
+  amenities   Amenity[]
+  notIncluded NotIncludedItem[] @relation("NotIncludedItems")
+  visitors    Visitor[]
+
+  // Creator/Updater relations
+  createdBy   User?   @relation("CreatedProperties", fields: [createdById], references: [id])
+  createdById String?
+  updatedBy   User?   @relation("UpdatedProperties", fields: [updatedById], references: [id])
+  updatedById String?
+
+  @@map("properties")
+}
+
+model PropertyImage {
+  id         Int      @id @default(autoincrement())
+  url        String
+  alt        String
+  isMain     Boolean  @default(false)
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId Int
+
+  @@map("property_images")
+}
+
+model Amenity {
+  id         Int      @id @default(autoincrement())
+  name       String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId Int
+
+  @@map("amenities")
+}
+
+model NotIncludedItem {
+  id         Int      @id @default(autoincrement())
+  name       String
+  property   Property @relation("NotIncludedItems", fields: [propertyId], references: [id])
+  propertyId Int
+
+  @@map("not_included_items")
 }
 
 model Visitor {
@@ -46,24 +126,28 @@ model Visitor {
   email      String
   favorite   Boolean  @default(false)
   visitDate  DateTime
-  propertyId String
   property   Property @relation(fields: [propertyId], references: [id])
+  propertyId Int // Changed to Int to match Property.id type
+
+  @@map("visitors")
 }
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
-  emailVerified DateTime?
-  image         String?
-  name          String
-  accounts      Account[]
-  properties    Property[] @relation("CreatedProperties")
-  updatedProps  Property[] @relation("UpdatedProperties")
-  sessions      Session[]
+  id                String     @id @default(cuid())
+  email             String     @unique
+  emailVerified     DateTime?
+  image             String?
+  name              String
+  accounts          Account[]
+  createdProperties Property[] @relation("CreatedProperties")
+  updatedProperties Property[] @relation("UpdatedProperties")
+  sessions          Session[]
 
-  //2FA
+  // 2FA
   twoFactorCode    String?
   twoFactorExpires DateTime?
+
+  @@map("users")
 }
 
 model Account {
@@ -72,16 +156,17 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Session {
@@ -90,6 +175,14 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}
+
+enum PropertyStatus {
+  Featured
+  New
+  Verified
 }
 
 enum Category {
@@ -97,14 +190,33 @@ enum Category {
   SALE
 }
 
-enum PropertyType {
-  APPARTMENT
-  HOUSE
-  COMMERCIAL
-  OFF_PLAN
+enum ReasonForSelling {
+  INVESTMENT_SALE
+  UPGRADING
+  RELOCATION
+  DOWNSIZING
+  OTHER
 }
 
-enum PetOption {
-  CATS_ALLOWED
-  DOGS_ALLOWED
+enum Timeline {
+  ASAP
+  ONE_TO_THREE_MONTHS @map("1-3 months")
+  THREE_TO_SIX_MONTHS @map("3-6 months")
+  FLEXIBLE
+}
+
+enum PropertyType {
+  APARTMENT
+  BUNGALOW
+  MAISONETTE
+  STUDIO_APARTMENT
+  SERVICED_APARTMENT
+  PENTHOUSE
+  TOWNHOUSE
+  VILLA
+  MANSION
+  DUPLEX
+  SINGLE_FAMILY_HOME
+  MULTI_FAMILY_HOME
+  OTHER
 }

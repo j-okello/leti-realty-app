@@ -121,7 +121,7 @@ export default function PhoneInput({
 
   return (
     <div className="w-full  ">
-      <label className="block text-sm font-medium text-blue-900 mb-2">
+      <label className="block text-sm font-semibold text-blue-900 mb-2">
         Phone Number
       </label>
 
