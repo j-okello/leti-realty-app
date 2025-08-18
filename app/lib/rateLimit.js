@@ -1,140 +1,161 @@
 // lib/rateLimit.js
 import Redis from "ioredis";
-import { RateLimiterRedis } from "rate-limiter-flexible";
+import { RateLimiterRedis, RateLimiterMemory } from "rate-limiter-flexible";
 
-// Create Redis client with proper error handling and fallbacks
-const createRedisClient = () => {
-  // Check if we have a Redis URL configured
-  if (!process.env.REDIS_URL) {
-    console.warn("REDIS_URL not configured. Rate limiting will be disabled.");
-    return null;
-  }
-
-  try {
-    const redisClient = new Redis(process.env.REDIS_URL, {
-      // Add connection options for better reliability
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-      enableOfflineQueue: false,
-      // Handle connection errors gracefully
-      retryDelayOnClusterDown: 300,
-      retryDelayOnFailover: 100,
-    });
-
-    // Handle connection errors
-    redisClient.on("error", (err) => {
-      console.error("Redis connection error:", err.message);
-    });
-
-    redisClient.on("connect", () => {
-      console.log("Redis connected successfully");
-    });
-
-    return redisClient;
-  } catch (error) {
-    console.error("Failed to create Redis client:", error.message);
-    return null;
-  }
+// Configuration constants
+const RATE_LIMIT_CONFIG = {
+  points: 7, // Number of points
+  duration: 60 * 60, // Per hour (in seconds)
+  blockDuration: 60 * 60, // Block for 1 hour if exceeded
+  keyPrefix: "formLimiter", // Redis key prefix
+  inMemoryFallback: true, // Enable in-memory fallback
+  memoryCleanupInterval: 5 * 60 * 1000, // 5 minutes
 };
 
-const redisClient = createRedisClient();
+class RateLimitService {
+  constructor() {
+    this.redisClient = null;
+    this.rateLimiter = null;
+    this.memoryStore = new Map();
+    this.initialize();
+  }
 
-// Create rate limiter only if Redis is available
-const rateLimiter = redisClient
-  ? new RateLimiterRedis({
-      storeClient: redisClient,
-      keyPrefix: "formLimiter",
-      points: 7, // 7 submissions
-      duration: 60 * 60, // per hour
-      blockDuration: 60 * 60, // block for 1 hour if exceeded
-    })
-  : null;
+  async initialize() {
+    await this.setupRedisClient();
+    this.setupMemoryCleanup();
+  }
 
-// In-memory fallback for when Redis is not available
-const memoryStore = new Map();
-const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+  async setupRedisClient() {
+    if (!process.env.REDIS_URL) {
+      console.warn("REDIS_URL not configured. Redis rate limiting disabled.");
+      return;
+    }
 
-// Clean up old entries from memory store
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, data] of memoryStore.entries()) {
-    if (now - data.timestamp > 60 * 60 * 1000) {
-      // 1 hour
-      memoryStore.delete(key);
+    try {
+      this.redisClient = new Redis(process.env.REDIS_URL, {
+        retryStrategy: (times) => Math.min(times * 100, 5000),
+        maxRetriesPerRequest: 3,
+        enableOfflineQueue: false,
+        connectTimeout: 5000,
+      });
+
+      this.redisClient.on("error", (err) => {
+        console.error("Redis error:", err.message);
+      });
+
+      this.redisClient.on("connect", () => {
+        console.log("Redis connected successfully");
+        this.rateLimiter = new RateLimiterRedis({
+          ...RATE_LIMIT_CONFIG,
+          storeClient: this.redisClient,
+        });
+      });
+
+      // Test the connection
+      await this.redisClient.ping();
+    } catch (error) {
+      console.error("Redis connection failed:", error.message);
+      this.redisClient = null;
     }
   }
-}, MEMORY_CLEANUP_INTERVAL);
 
-async function checkRateLimitMemory(ip) {
-  const key = `formLimiter:${ip}`;
-  const now = Date.now();
-  const hourAgo = now - 60 * 60 * 1000;
+  setupMemoryCleanup() {
+    if (!RATE_LIMIT_CONFIG.inMemoryFallback) return;
 
-  let data = memoryStore.get(key) || {
-    attempts: [],
-    blocked: false,
-    blockedUntil: 0,
-  };
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, data] of this.memoryStore.entries()) {
+        if (now - data.timestamp > RATE_LIMIT_CONFIG.duration * 1000) {
+          this.memoryStore.delete(key);
+        }
+      }
+    }, RATE_LIMIT_CONFIG.memoryCleanupInterval);
+  }
 
-  // Remove old attempts
-  data.attempts = data.attempts.filter((timestamp) => timestamp > hourAgo);
+  async checkRateLimitMemory(ip) {
+    const key = `${RATE_LIMIT_CONFIG.keyPrefix}:${ip}`;
+    const now = Date.now();
+    const windowStart = now - RATE_LIMIT_CONFIG.duration * 1000;
 
-  // Check if still blocked
-  if (data.blocked && now < data.blockedUntil) {
-    return {
-      allowed: false,
-      retryAfter: Math.floor((data.blockedUntil - now) / 1000),
-      remainingPoints: 0,
+    let data = this.memoryStore.get(key) || {
+      attempts: [],
+      blockedUntil: 0,
     };
-  }
 
-  // Reset block if time has passed
-  if (data.blocked && now >= data.blockedUntil) {
-    data.blocked = false;
-    data.blockedUntil = 0;
-  }
+    // Clean up old attempts
+    data.attempts = data.attempts.filter((t) => t > windowStart);
 
-  // Check if limit exceeded
-  if (data.attempts.length >= 7) {
-    data.blocked = true;
-    data.blockedUntil = now + 60 * 60 * 1000; // Block for 1 hour
-    memoryStore.set(key, { ...data, timestamp: now });
-
-    return {
-      allowed: false,
-      retryAfter: 3600, // 1 hour
-      remainingPoints: 0,
-    };
-  }
-
-  // Add current attempt
-  data.attempts.push(now);
-  memoryStore.set(key, { ...data, timestamp: now });
-
-  return {
-    allowed: true,
-    retryAfter: 0,
-    remainingPoints: 7 - data.attempts.length,
-  };
-}
-
-export async function checkRateLimit(ip) {
-  // Use Redis if available, otherwise fall back to memory
-  if (rateLimiter && redisClient) {
-    try {
-      await rateLimiter.consume(ip);
-      return { allowed: true, retryAfter: 0 };
-    } catch (rejRes) {
+    // Check if blocked
+    if (now < data.blockedUntil) {
       return {
         allowed: false,
-        retryAfter: Math.floor(rejRes.msBeforeNext / 1000) || 60,
-        remainingPoints: rejRes.remainingPoints || 0,
+        retryAfter: Math.ceil((data.blockedUntil - now) / 1000),
+        remainingPoints: 0,
       };
     }
-  } else {
-    // Fallback to memory-based rate limiting
-    console.log("Using memory-based rate limiting (Redis not available)");
-    return await checkRateLimitMemory(ip);
+
+    // Check if limit exceeded
+    if (data.attempts.length >= RATE_LIMIT_CONFIG.points) {
+      data.blockedUntil = now + RATE_LIMIT_CONFIG.blockDuration * 1000;
+      this.memoryStore.set(key, { ...data, timestamp: now });
+
+      return {
+        allowed: false,
+        retryAfter: RATE_LIMIT_CONFIG.blockDuration,
+        remainingPoints: 0,
+      };
+    }
+
+    // Record attempt
+    data.attempts.push(now);
+    this.memoryStore.set(key, { ...data, timestamp: now });
+
+    return {
+      allowed: true,
+      retryAfter: 0,
+      remainingPoints: RATE_LIMIT_CONFIG.points - data.attempts.length,
+    };
   }
+
+  async checkRateLimit(ip) {
+    try {
+      // Try Redis first if available
+      if (this.rateLimiter && this.redisClient?.status === "ready") {
+        const res = await this.rateLimiter.consume(ip);
+        return {
+          allowed: true,
+          retryAfter: 0,
+          remainingPoints: res.remainingPoints,
+        };
+      }
+
+      // Fallback to memory if enabled
+      if (RATE_LIMIT_CONFIG.inMemoryFallback) {
+        console.warn("Using in-memory rate limiting (Redis not available)");
+        return this.checkRateLimitMemory(ip);
+      }
+
+      // Allow if no rate limiting available
+      return { allowed: true, retryAfter: 0 };
+    } catch (error) {
+      if (error.msBeforeNext) {
+        // Rate limit exceeded
+        return {
+          allowed: false,
+          retryAfter: Math.ceil(error.msBeforeNext / 1000),
+          remainingPoints: error.remainingPoints || 0,
+        };
+      }
+
+      console.error("Rate limit check failed:", error.message);
+      return { allowed: true, retryAfter: 0 }; // Fail open
+    }
+  }
+}
+
+// Singleton instance
+const rateLimitService = new RateLimitService();
+
+export async function checkRateLimit(ip) {
+  return rateLimitService.checkRateLimit(ip);
 }
