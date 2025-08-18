@@ -10,6 +10,8 @@ export default function PrivacyPolicySwitch({
   required = true,
   link = "#",
   className = "",
+  disabled = false,
+  touched = {},
 }) {
   return (
     <div className={`space-y-2 ${className}`}>
@@ -18,27 +20,39 @@ export default function PrivacyPolicySwitch({
           <Switch
             checked={checked}
             onChange={onChange}
+            disabled={disabled}
             className={`group relative inline-flex w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
-              checked ? "bg-blue-400" : "bg-blue-200"
+              disabled
+                ? "bg-gray-300 cursor-not-allowed opacity-50"
+                : checked
+                  ? "bg-blue-400"
+                  : "bg-blue-200"
             }`}
           >
             <span className="sr-only">Agree to policies</span>
             <span
               aria-hidden="true"
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-blue-900 shadow-lg ring-0 transition duration-200 ease-in-out ${
-                checked ? " translate-x-6" : "translate-x-1 "
-              }`}
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
+                disabled ? "bg-gray-500" : "bg-blue-900"
+              } ${checked ? "translate-x-6" : "translate-x-1"}`}
             />
           </Switch>
         </div>
 
-        <Label className="text-sm text-gray-700">
+        <Label
+          className={`text-sm ${disabled ? "text-gray-400" : "text-gray-700"}`}
+        >
           By selecting this, you agree to our{" "}
           <Link
             href={link}
-            className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+            className={`font-semibold ${
+              disabled
+                ? "text-gray-400 pointer-events-none"
+                : "text-blue-600 hover:text-blue-800 hover:underline"
+            }`}
             target="_blank"
             rel="noopener noreferrer"
+            tabIndex={disabled ? -1 : 0}
           >
             privacy policy
           </Link>
@@ -46,8 +60,9 @@ export default function PrivacyPolicySwitch({
         </Label>
       </div>
 
-      {errors.agreed && (
-        <p className="mt-1 text-sm text-red-600">{errors.agreed}</p>
+      {/* Show error only if there's an error (not dependent on touched state) */}
+      {errors.agreeToPolicy && (
+        <p className="mt-1 text-sm text-red-600">{errors.agreeToPolicy}</p>
       )}
     </div>
   );

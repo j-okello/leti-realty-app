@@ -1,19 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_RECAPTCHA_SITE_KEY: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+    RECAPTCHA_SECRET_KEY: process.env.RECAPTCHA_SECRET_KEY,
+  },
   images: {
     remotePatterns: [
       {
         protocol: "https",
         hostname: "flagsapi.com",
-        port: "",
-        pathname: "/my-bucket/**",
-        search: "",
       },
       {
         protocol: "https",
         hostname: "images.unsplash.com",
-        port: "",
-        pathname: "/photo-1586023492125-27b2c045efd7",
       },
     ],
   },

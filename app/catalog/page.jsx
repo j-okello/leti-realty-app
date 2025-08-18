@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import CompareBar from "@/components/ui/properties/CompareBar";
@@ -189,23 +190,24 @@ export default function CatalogPage() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                     {currentProperties.map((property) => (
-                      <PropertyCardWithCompare
-                        key={property.id}
-                        property={{
-                          ...property,
-                          price:
-                            property.priceFormatted ||
-                            `${property.price?.toLocaleString()}`,
-                          location: `${property.location}`,
-                          beds: property.beds,
-                          baths: property.baths,
-                        }}
-                        isSelected={compareList.some(
-                          (p) => p.id === property.id
-                        )}
-                        onToggleCompare={handleToggleCompare}
-                        compareCount={compareList.length}
-                      />
+                      <Link key={property.id} href={`/catalog/${property.id}`}>
+                        <PropertyCardWithCompare
+                          property={{
+                            ...property,
+                            price:
+                              property.priceFormatted ||
+                              `${property.price?.toLocaleString()}`,
+                            location: `${property.location}`,
+                            beds: property.beds,
+                            baths: property.baths,
+                          }}
+                          isSelected={compareList.some(
+                            (p) => p.id === property.id
+                          )}
+                          onToggleCompare={handleToggleCompare}
+                          compareCount={compareList.length}
+                        />
+                      </Link>
                     ))}
                   </div>
 

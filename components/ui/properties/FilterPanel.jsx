@@ -140,8 +140,8 @@ export default function FilterPanel({
       type: "type",
       location: "location",
       price: "priceRange",
-      bedrooms: "bedrooms",
-      bathrooms: "bathrooms",
+      bedrooms: "beds",
+      bathrooms: "baths",
     };
     return filterMap[filterName] || filterName;
   };

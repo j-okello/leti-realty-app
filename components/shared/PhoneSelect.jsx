@@ -4,9 +4,13 @@ import { ChevronDown, Search } from "lucide-react";
 import countries from "@/app/lib/countries";
 
 export default function PhoneInput({
+  required = false,
   onPhoneChange,
   initialValue = { code: "", phoneCode: "", number: "" },
-  errors,
+  errors = {},
+  disabled = false,
+  onBlur,
+  helperText,
 }) {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState(initialValue.number || "");
@@ -14,7 +18,7 @@ export default function PhoneInput({
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef(null);
   const [countriesWithFlags, setCountriesWithFlags] = useState([]);
-  const [isInitialized, setIsInitialized] = useState(false); // Track initialization
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Transform countries data to include flags
   useEffect(() => {
@@ -44,12 +48,14 @@ export default function PhoneInput({
         );
       }
 
-      setSelectedCountry(defaultCountry);
-      setIsInitialized(true);
+      if (defaultCountry) {
+        setSelectedCountry(defaultCountry);
+        setIsInitialized(true);
+      }
     }
-  }, [countriesWithFlags]);
+  }, [countriesWithFlags, initialValue.code]);
 
-  //  Call onPhoneChange whenever data changes
+  // Call onPhoneChange whenever data changes
   useEffect(() => {
     if (selectedCountry && isInitialized && onPhoneChange) {
       const phoneData = {
@@ -59,10 +65,10 @@ export default function PhoneInput({
         fullNumber: `${selectedCountry.phoneCode}${phoneNumber}`,
       };
 
-      console.log("PhoneInput sending data:", phoneData);
+      //console.log("PhoneInput sending data:", phoneData);
       onPhoneChange(phoneData);
     }
-  }, [selectedCountry, phoneNumber]);
+  }, [selectedCountry, phoneNumber, isInitialized, onPhoneChange]);
 
   // Update phone number when initialValue changes (for controlled component behavior)
   useEffect(() => {
@@ -89,6 +95,23 @@ export default function PhoneInput({
     // Remove any non-numeric characters except spaces and dashes for display
     value = value.replace(/[^\d\s-]/g, "");
     setPhoneNumber(value);
+  };
+
+  const handlePhoneBlur = (e) => {
+    if (onBlur) {
+      // Create a synthetic event for the phone field
+      const syntheticEvent = {
+        target: {
+          name: "phone",
+          value: {
+            code: selectedCountry?.code || "",
+            phoneCode: selectedCountry?.phoneCode || "",
+            number: phoneNumber,
+          },
+        },
+      };
+      onBlur(syntheticEvent);
+    }
   };
 
   // Close dropdown when clicking outside
@@ -120,7 +143,7 @@ export default function PhoneInput({
   }, [isOpen]);
 
   return (
-    <div className="w-full  ">
+    <div className="w-full">
       <label className="block text-sm font-semibold text-blue-900 mb-2">
         Phone Number
       </label>
@@ -130,13 +153,18 @@ export default function PhoneInput({
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="relative flex items-center px-3 py-3 border border-r-0 border-gray-300 rounded-l-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            onClick={() => !disabled && setIsOpen(!isOpen)}
+            disabled={disabled}
+            className={`relative flex items-center px-3 py-3 border border-r-0 border-gray-300 rounded-l-md bg-white transition-colors ${
+              disabled
+                ? "bg-gray-50 cursor-not-allowed opacity-50"
+                : "hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            }`}
             aria-label="Select country"
             aria-expanded={isOpen}
             aria-haspopup="listbox"
           >
-            <div className="flex items-center flex-1 min-w-0 verflow-hidden">
+            <div className="flex items-center flex-1 min-w-0 overflow-hidden">
               {selectedCountry && (
                 <img
                   src={selectedCountry.flag}
@@ -148,7 +176,7 @@ export default function PhoneInput({
                 />
               )}
               <span className="text-sm font-medium text-gray-700 truncate">
-                {selectedCountry?.phoneCode}
+                {selectedCountry?.phoneCode || "+254"}
               </span>
             </div>
             <ChevronDown
@@ -160,7 +188,7 @@ export default function PhoneInput({
           </button>
 
           {/* Dropdown */}
-          {isOpen && (
+          {isOpen && !disabled && (
             <div
               className="absolute top-full left-0 w-80 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-hidden"
               role="listbox"
@@ -229,12 +257,19 @@ export default function PhoneInput({
           placeholder="0123 456 789"
           value={phoneNumber}
           onChange={handlePhoneNumberChange}
-          className=" px-3 py-2 w-full border bg-white border-blue-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-0"
+          onBlur={handlePhoneBlur}
+          disabled={disabled}
+          className={`px-3 py-2 w-full border bg-white border-blue-300 rounded-r-md min-w-0 ${
+            disabled
+              ? "bg-gray-50 cursor-not-allowed opacity-50"
+              : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          }`}
           aria-label="Phone number"
         />
       </div>
+
       {/* Error Display */}
-      {errors?.phone && (
+      {errors.phone && (
         <p className="text-sm text-red-600 mt-1">{errors.phone}</p>
       )}
     </div>

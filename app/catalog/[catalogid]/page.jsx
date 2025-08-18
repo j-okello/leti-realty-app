@@ -10,27 +10,26 @@ import ImagePreviewModal from "@/components/ui/singlelist/ImagePreview";
 import { Heart, Share2, MapPin } from "lucide-react";
 
 export default function SinglePropertyPage({ params }) {
+  const { catalogId } = params;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [property, setProperty] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null); // Added missing state
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     setIsMounted(true);
     const foundProperty =
-      properties.find((p) => p.id === params.id) || properties[0];
+      properties.find((p) => p.id === params.catalogId) || null;
     setProperty(foundProperty);
 
-    // Initialize selected image
     if (foundProperty?.images?.length > 0) {
-      setSelectedImage(
-        foundProperty.images.find((img) => img?.isMain) ||
-          foundProperty.images[0]
-      );
+      const mainImage = foundProperty.images.find((img) => img?.isMain);
+      setSelectedImage(mainImage || foundProperty.images[0]);
     }
-  }, [params.id]);
+  }, [catalogId]);
 
   const breadcrumbItems = useMemo(
     () => [
@@ -41,7 +40,11 @@ export default function SinglePropertyPage({ params }) {
   );
 
   const formatDate = useCallback((dateString) => {
-    return dateString ? new Date(dateString).toLocaleDateString() : "N/A";
+    try {
+      return dateString ? new Date(dateString).toLocaleDateString() : "N/A";
+    } catch {
+      return "N/A";
+    }
   }, []);
 
   const handleImageSelect = useCallback((image, index) => {
@@ -60,19 +63,20 @@ export default function SinglePropertyPage({ params }) {
     (direction) => {
       if (!property?.images?.length) return;
 
-      if (typeof direction === "number") {
-        setCurrentImageIndex(direction);
-      } else if (direction === "prev") {
-        setCurrentImageIndex((prev) =>
-          prev === 0 ? property.images.length - 1 : prev - 1
-        );
-      } else {
-        setCurrentImageIndex((prev) =>
-          prev === property.images.length - 1 ? 0 : prev + 1
-        );
-      }
+      const newIndex =
+        typeof direction === "number"
+          ? direction
+          : direction === "prev"
+            ? currentImageIndex === 0
+              ? property.images.length - 1
+              : currentImageIndex - 1
+            : currentImageIndex === property.images.length - 1
+              ? 0
+              : currentImageIndex + 1;
+
+      setCurrentImageIndex(newIndex);
     },
-    [property?.images]
+    [property?.images, currentImageIndex]
   );
 
   const handleBookingClick = useCallback(() => {
@@ -87,28 +91,49 @@ export default function SinglePropertyPage({ params }) {
     setIsModalOpen(false);
   }, []);
 
-  // Show loading state until mounted or if property not found
-  if (!isMounted || !property) {
+  if (!isMounted) {
     return (
-      <section className="bg-gray-50">
+      <section className="bg-gray-50 min-h-screen">
         <div className="w-full bg-blue-50 p-3 mt-6">
           <div className="animate-pulse h-6 bg-gray-200 rounded w-1/4"></div>
         </div>
-        <div className="min-h-screen">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-8">
-                <div className="animate-pulse bg-gray-200 rounded-lg h-[600px]"></div>
-                <div className="animate-pulse space-y-2">
-                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              </div>
-              <div className="lg:col-span-1">
-                <div className="animate-pulse bg-gray-200 rounded-lg h-96"></div>
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <div className="animate-pulse bg-gray-200 rounded-lg h-[600px]"></div>
+              <div className="space-y-4">
+                <div className="animate-pulse h-8 bg-gray-200 rounded w-3/4"></div>
+                <div className="animate-pulse h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="animate-pulse h-4 bg-gray-200 rounded w-full"></div>
+                <div className="animate-pulse h-4 bg-gray-200 rounded w-5/6"></div>
               </div>
             </div>
+            <div className="lg:col-span-1">
+              <div className="animate-pulse bg-gray-200 rounded-lg h-96"></div>
+            </div>
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!property) {
+    return (
+      <section className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Property Not Found
+          </h2>
+          <p className="text-gray-600 mb-6">
+            The property you're looking for doesn't exist or may have been
+            removed.
+          </p>
+          <a
+            href="/catalog"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Browse Properties
+          </a>
         </div>
       </section>
     );
@@ -125,16 +150,14 @@ export default function SinglePropertyPage({ params }) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Images and Details */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Image Gallery */}
               <ImageGallery
-                images={property.images}
+                images={property.images || []}
                 selectedImage={selectedImage}
                 onImageSelect={handleImageSelect}
                 onImagePreview={handleImagePreview}
                 hasVideo={property.hasVideo}
               />
 
-              {/* Property Header */}
               <div className="space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold text-blue-900">
                   {property.title}
@@ -145,7 +168,6 @@ export default function SinglePropertyPage({ params }) {
                 </div>
               </div>
 
-              {/* Overview */}
               <div className="space-y-4">
                 <h2 className="text-xl text-blue-900 font-semibold">
                   Overview
@@ -155,10 +177,8 @@ export default function SinglePropertyPage({ params }) {
                 </p>
               </div>
 
-              {/* Amenities */}
-              <AmenitiesSection amenities={property.amenities} />
+              <AmenitiesSection amenities={property.amenities || []} />
 
-              {/* Property Metadata */}
               <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
                 <span>Published: {formatDate(property.publishedDate)}</span>
                 <span>Ad number: {property.adNumber}</span>
@@ -176,17 +196,15 @@ export default function SinglePropertyPage({ params }) {
           </div>
         </div>
 
-        {/* Image Preview Modal */}
         <ImagePreviewModal
           isOpen={isPreviewOpen}
           onClose={handleClosePreview}
-          images={property.images}
+          images={property.images || []}
           currentIndex={currentImageIndex}
           onNavigate={handleImageNavigation}
           property={property}
         />
 
-        {/* Booking Modal */}
         {isModalOpen && (
           <ModalBooking setIsModalOpen={handleCloseModal} property={property} />
         )}

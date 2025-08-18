@@ -60,12 +60,11 @@ class PropertyErrorBoundary extends React.Component {
 // Enhanced Property Card Component
 export default function PropertyCard({ property }) {
   const router = useRouter();
-
-  const handleViewDetails = () => {
-    router.push(`/catalog/${property.id}`);
-  };
   const [isFavorite, setIsFavorite] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Ensure property.id exists and is valid
+  const propertyId = property?.id || property?._id || "unknown";
 
   const formatPrice = (price) => {
     const numericPrice = Number(String(price).replace(/[^0-9.-]+/g, ""));
@@ -91,9 +90,25 @@ export default function PropertyCard({ property }) {
     );
   };
 
+  const handleCardClick = (e) => {
+    // Prevent navigation if clicking on favorite button
+    if (e.target.closest("[data-favorite-button]")) {
+      return;
+    }
+    // Navigate to property details
+    router.push(`/catalog/${property.id}`);
+  };
+
+  const handleFavoriteClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsFavorite(!isFavorite);
+  };
+
   return (
     <PropertyErrorBoundary>
       <div
+        onClick={handleCardClick}
         className={`max-w-sm bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer group ${
           isHovered ? "scale-105" : "hover:scale-105"
         }`}
@@ -106,7 +121,9 @@ export default function PropertyCard({ property }) {
             <Image
               src={property.image}
               alt={property.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               onError={(e) => {
                 e.target.src =
                   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3Ctext x='200' y='150' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle' dominant-baseline='middle'%3EProperty Image%3C/text%3E%3C/svg%3E";
@@ -122,7 +139,7 @@ export default function PropertyCard({ property }) {
             <div className="absolute top-4 left-4 flex flex-col gap-2">
               {property.status.map((item, index) => (
                 <span
-                  key={item}
+                  key={`${item}-${index}`}
                   className={`text-xs px-3 py-1.5 rounded-full text-white font-medium shadow-lg ${getStatusColor(item)} transform transition-all duration-300 ${
                     isHovered ? "scale-110" : ""
                   }`}
@@ -136,11 +153,9 @@ export default function PropertyCard({ property }) {
 
           {/* Enhanced Favorite Button */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFavorite(!isFavorite);
-            }}
-            className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110 ${
+            onClick={handleFavoriteClick}
+            data-favorite-button="true"
+            className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110 z-10 ${
               isFavorite
                 ? "bg-red-500/90 text-white shadow-lg shadow-red-200"
                 : "bg-white/90 text-gray-600 hover:bg-white hover:text-red-500"
@@ -173,6 +188,7 @@ export default function PropertyCard({ property }) {
               <span className="text-sm font-semibold text-blue-600 uppercase tracking-wide">
                 {property.category || "Property"}
               </span>
+
               <h3 className="text-xl font-bold text-gray-900 mt-1 line-clamp-2 group-hover:text-blue-600 transition-colors duration-300">
                 {property.title}
               </h3>
