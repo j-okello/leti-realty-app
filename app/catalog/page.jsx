@@ -13,7 +13,7 @@ import PropertyCardWithCompare from "@/components/ui/properties/PropertyCompare"
 import properties from "@/app/lib/properties";
 import house from "@/public/house.jpg";
 
-export default function CatalogPage() {
+function CatalogContent() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [compareList, setCompareList] = useState([]);
@@ -115,149 +115,153 @@ export default function CatalogPage() {
   };
 
   return (
-    <PropertyErrorBoundary>
-      <section className="space-y-8 pb-24">
-        {/* Hero Section */}
-        <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px]">
-          <Image
-            src={house}
-            className="object-cover"
-            alt="Luxury property showcase"
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, 50vw"
-          />
-          <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-center px-4">
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
-              {listingType === "buy" ? "Homes For Sale" : "Rental Properties"}
-            </h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-2xl drop-shadow-md">
-              {listingType === "buy"
-                ? "Find your dream home today"
-                : "Discover your perfect rental"}
-            </p>
-          </div>
+    <section className="space-y-8 pb-24">
+      {/* Hero Section */}
+      <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px]">
+        <Image
+          src={house}
+          className="object-cover"
+          alt="Luxury property showcase"
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 50vw"
+        />
+        <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-center px-4">
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
+            {listingType === "buy" ? "Homes For Sale" : "Rental Properties"}
+          </h1>
+          <p className="text-lg md:text-xl text-white/90 max-w-2xl drop-shadow-md">
+            {listingType === "buy"
+              ? "Find your dream home today"
+              : "Discover your perfect rental"}
+          </p>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="container mx-auto px-4 lg:px-6">
-          {/* Filters */}
-          <FilterPanel
-            filters={filters}
-            onFiltersChange={setFilters}
-            propertyTypes={propertyTypes}
-            locations={locations}
-            listingType={listingType}
-            onListingTypeChange={setListingType}
-          />
+      {/* Main Content */}
+      <div className="container mx-auto px-4 lg:px-6">
+        {/* Filters */}
+        <FilterPanel
+          filters={filters}
+          onFiltersChange={setFilters}
+          propertyTypes={propertyTypes}
+          locations={locations}
+          listingType={listingType}
+          onListingTypeChange={setListingType}
+        />
 
-          {/* Results Header */}
-          <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800">
-                {filteredProperties.length} Properties Found
-              </h2>
-              {filters.search && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Search results for: "{filters.search}"
-                </p>
-              )}
-            </div>
-            {compareList.length > 0 && (
-              <div className="text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full">
-                {compareList.length} selected for comparison
-              </div>
+        {/* Results Header */}
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">
+              {filteredProperties.length} Properties Found
+            </h2>
+            {filters.search && (
+              <p className="text-sm text-gray-500 mt-1">
+                Search results for: "{filters.search}"
+              </p>
             )}
           </div>
-
-          {/* Loading State */}
-          {loading ? (
-            <LoadingSpinner />
-          ) : (
-            <>
-              {/* Property Grid */}
-              {currentProperties.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                    {currentProperties.map((property) => (
-                      <PropertyCardWithCompare
-                        key={property.id}
-                        property={{
-                          ...property,
-                          price:
-                            property.priceFormatted ||
-                            `${property.price?.toLocaleString()}`,
-                          location: `${property.location}`,
-                          beds: property.beds,
-                          baths: property.baths,
-                        }}
-                        isSelected={compareList.some(
-                          (p) => p.id === property.id
-                        )}
-                        onToggleCompare={handleToggleCompare}
-                        compareCount={compareList.length}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={(page) => {
-                        setCurrentPage(page);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    />
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-12 border rounded-lg bg-gray-50">
-                  <h3 className="text-xl font-medium text-gray-700 mb-3">
-                    No properties match your search
-                  </h3>
-                  <p className="text-gray-500 mb-5">
-                    Try adjusting your filters or search terms
-                  </p>
-                  <button
-                    onClick={() => {
-                      setFilters({
-                        search: "",
-                        type: "",
-                        location: "",
-                        priceRange: "",
-                        bedrooms: "",
-                        bathrooms: "",
-                      });
-                    }}
-                    className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Reset Filters
-                  </button>
-                </div>
-              )}
-            </>
+          {compareList.length > 0 && (
+            <div className="text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full">
+              {compareList.length} selected for comparison
+            </div>
           )}
         </div>
 
-        {/* Comparison Components */}
-        <CompareBar
-          compareList={compareList}
-          onRemove={(id) =>
-            setCompareList((prev) => prev.filter((p) => p.id !== id))
-          }
-          onCompare={handleCompare}
-          onClear={() => setCompareList([])}
-          disabled={compareList.length < 2}
-        />
+        {/* Loading State */}
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
+          <>
+            {/* Property Grid */}
+            {currentProperties.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                  {currentProperties.map((property) => (
+                    <PropertyCardWithCompare
+                      key={property.id}
+                      property={{
+                        ...property,
+                        price:
+                          property.priceFormatted ||
+                          `${property.price?.toLocaleString()}`,
+                        location: `${property.location}`,
+                        beds: property.beds,
+                        baths: property.baths,
+                      }}
+                      isSelected={compareList.some((p) => p.id === property.id)}
+                      onToggleCompare={handleToggleCompare}
+                      compareCount={compareList.length}
+                    />
+                  ))}
+                </div>
 
-        <CompareModal
-          isOpen={showCompareModal}
-          onClose={() => setShowCompareModal(false)}
-          properties={compareList}
-        />
-      </section>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => {
+                      setCurrentPage(page);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 border rounded-lg bg-gray-50">
+                <h3 className="text-xl font-medium text-gray-700 mb-3">
+                  No properties match your search
+                </h3>
+                <p className="text-gray-500 mb-5">
+                  Try adjusting your filters or search terms
+                </p>
+                <button
+                  onClick={() => {
+                    setFilters({
+                      search: "",
+                      type: "",
+                      location: "",
+                      priceRange: "",
+                      bedrooms: "",
+                      bathrooms: "",
+                    });
+                  }}
+                  className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Comparison Components */}
+      <CompareBar
+        compareList={compareList}
+        onRemove={(id) =>
+          setCompareList((prev) => prev.filter((p) => p.id !== id))
+        }
+        onCompare={handleCompare}
+        onClear={() => setCompareList([])}
+        disabled={compareList.length < 2}
+      />
+
+      <CompareModal
+        isOpen={showCompareModal}
+        onClose={() => setShowCompareModal(false)}
+        properties={compareList}
+      />
+    </section>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <PropertyErrorBoundary>
+      <CatalogContent />
     </PropertyErrorBoundary>
   );
 }
