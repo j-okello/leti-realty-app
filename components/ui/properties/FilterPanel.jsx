@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import SelectFilter from "./SelectFilter";
 import { Search, Filter, ChevronDown, X, Home, Sliders } from "lucide-react";
 import Link from "next/link";
@@ -38,7 +38,7 @@ const BATHROOM_OPTIONS = [
   { value: "3", label: "3+ Bathrooms" },
 ];
 
-export default function FilterPanel({
+function FilterPanelContent({
   propertyTypes = [],
   locations = [],
   initialFilters = {},
@@ -357,5 +357,35 @@ export default function FilterPanel({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function FilterPanel(props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="mb-6">
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <FilterPanelContent {...props} />
+    </Suspense>
   );
 }
