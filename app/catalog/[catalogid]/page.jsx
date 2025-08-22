@@ -15,8 +15,15 @@ import { Home } from "lucide-react";
 
 // Main component
 export default function SinglePropertyPage({ params }) {
-  const { catalogId } = use(params);
-  const { property, isLoading, error, retryFetch } = useProperty(catalogId);
+  // Properly unwrap params using React.use()
+  const resolvedParams = use(params);
+  const { catalogId } = resolvedParams;
+
+  console.log("Resolved params:", resolvedParams);
+  console.log("Extracted catalogId:", catalogId);
+
+  const { property, isLoading, error, retryFetch, debug } =
+    useProperty(catalogId);
   const {
     selectedImage,
     currentImageIndex,
@@ -28,6 +35,13 @@ export default function SinglePropertyPage({ params }) {
   } = useImageGallery(property);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Add effect to handle missing catalogId
+  useEffect(() => {
+    if (!catalogId) {
+      console.error("No catalogId provided in params");
+    }
+  }, [catalogId]);
 
   // Memoized breadcrumb items
   const breadcrumbItems = useMemo(
@@ -56,6 +70,22 @@ export default function SinglePropertyPage({ params }) {
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
   }, []);
+
+  // Handle missing catalogId with more detailed error info
+  if (!catalogId) {
+    console.error(
+      "No catalogId found. Resolved params:",
+      resolvedParams,
+      "Debug info:",
+      debug
+    );
+    return (
+      <ErrorState
+        error={`No property ID provided. Received params: ${JSON.stringify(resolvedParams)}`}
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
 
   // Loading state
   if (isLoading) {
