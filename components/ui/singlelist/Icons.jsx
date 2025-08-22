@@ -35,10 +35,12 @@ import {
   CigaretteOff,
   Utensils,
   Shirt,
+  Home,
 } from "lucide-react";
 
 // Constants
 const AMENITY_ICONS = {
+  Home,
   wifi: Wifi,
   heating: Thermometer,
   dishwasher: Utensils,

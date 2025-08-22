@@ -42,6 +42,20 @@ export default function NewPropertyCard({ property = [] }) {
   const categoryName =
     categories.find((c) => c.id === activeCategory)?.label || "";
 
+  // Helper function to generate property URL
+  const getPropertyUrl = (property) => {
+    // Use property.id if available, otherwise use a slug from title, or index as fallback
+    const identifier =
+      property.id ||
+      property.title
+        ?.toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^\w-]/g, "") ||
+      property.slug ||
+      Date.now(); // fallback
+    return `/catalog/${identifier}`;
+  };
+
   return (
     <section id="new_listings">
       <ContentContainer
@@ -86,7 +100,7 @@ export default function NewPropertyCard({ property = [] }) {
           <button className="flex flex-col items-center justify-center px-4 py-3 rounded-lg transition-all duration-200 ease-in-out min-w-[100px] cursor-pointer border">
             <BsFillHousesFill className="text-2xl mb-1 text-blue-900 hover:text-blue-600" />
             <Link href="/catalog">
-              <span className="text-xs ext-gray-700 group-hover:text-blue-600">
+              <span className="text-xs text-gray-700 group-hover:text-blue-600">
                 view more
               </span>
             </Link>
@@ -106,7 +120,7 @@ export default function NewPropertyCard({ property = [] }) {
           >
             {/* Main featured property - Takes full width when single */}
             <div
-              className={`relative rounded-lg overflow-hidden ${isSingleProperty ? "h-[32rem]" : "h-96 lg:h-[32rem]"} group`}
+              className={`relative rounded-lg overflow-hidden ${isSingleProperty ? "h-[40rem]" : "h-96 lg:h-[32rem]"} group`}
             >
               <Image
                 src={filteredProperties[0].image}
@@ -120,7 +134,7 @@ export default function NewPropertyCard({ property = [] }) {
                 <span className="text-sm font-medium px-2 py-1 bg-red-600 rounded-md">
                   {filteredProperties[0].category || "Property"}
                 </span>
-                <Link href="#">
+                <Link href={getPropertyUrl(filteredProperties[0])}>
                   <h2 className="text-3xl font-bold mb-3 mt-2 hover:underline underline-offset-3 cursor-pointer">
                     {filteredProperties[0].title || "New Property"}
                   </h2>
@@ -138,9 +152,11 @@ export default function NewPropertyCard({ property = [] }) {
                     </span>
                   )}
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 text-white border rounded-md hover:bg-white/20 transition-colors font-medium">
-                  Explore <ChevronRight size={18} />
-                </button>
+                <Link href={getPropertyUrl(filteredProperties[0])}>
+                  <button className="flex items-center gap-2 px-4 py-2 text-white border rounded-md hover:bg-white/20 transition-colors font-medium">
+                    Explore <ChevronRight size={18} />
+                  </button>
+                </Link>
               </div>
             </div>
 
@@ -149,7 +165,7 @@ export default function NewPropertyCard({ property = [] }) {
               <div className="space-y-6">
                 {filteredProperties.slice(1).map((property, index) => (
                   <div
-                    key={index}
+                    key={property.id || index}
                     className="relative rounded-lg overflow-hidden h-60 group"
                   >
                     <Image
@@ -163,7 +179,7 @@ export default function NewPropertyCard({ property = [] }) {
                       <span className="text-xs font-medium px-2 py-1 bg-red-600 rounded-md">
                         {property.category || "Property"}
                       </span>
-                      <Link href="">
+                      <Link href={getPropertyUrl(property)}>
                         <h3 className="text-xl font-semibold mb-1 mt-1 hover:underline underline-offset-3">
                           {property.title || `Property ${index + 1}`}
                         </h3>
@@ -186,9 +202,11 @@ export default function NewPropertyCard({ property = [] }) {
                           </span>
                         )}
                       </div>
-                      <button className="flex items-center gap-1 text-sm text-white hover:text-gray-200 transition-colors cursor-pointer">
-                        View details <ChevronRight size={16} />
-                      </button>
+                      <Link href={getPropertyUrl(property)}>
+                        <button className="flex items-center gap-1 text-sm text-white hover:text-gray-200 transition-colors cursor-pointer">
+                          View details <ChevronRight size={16} />
+                        </button>
+                      </Link>
                     </div>
                   </div>
                 ))}

@@ -68,7 +68,7 @@ export default function FilterPanel({
       search: params.get("search") || "",
       type: params.get("type") || "",
       location: params.get("location") || "",
-      priceRange: params.get("priceRange") || "",
+      priceRange: params.get("price") || "",
       bedrooms: params.get("beds") || "",
       bathrooms: params.get("baths") || "",
     };
@@ -85,9 +85,8 @@ export default function FilterPanel({
     if (filters.priceRange) {
       const range =
         listingType === "buy"
-          ? BUY_PRICE_RANGES.find((r) => r.value === filters.priceRange)?.label
-          : RENT_PRICE_RANGES.find((r) => r.value === filters.priceRange)
-              ?.label;
+          ? BUY_PRICE_RANGES.find((r) => r.value === filters.price)?.label
+          : RENT_PRICE_RANGES.find((r) => r.value === filters.price)?.label;
       if (range) active.push(`Price: ${range}`);
     }
     if (filters.bedrooms) active.push(`Bedrooms: ${filters.bedrooms}+`);
@@ -189,7 +188,7 @@ export default function FilterPanel({
                 ? "bg-blue-600 text-white shadow-inner"
                 : "bg-gray-50 text-gray-700 hover:bg-gray-100"
             }`}
-            aria-pressed={listingType === "buy"}
+            aria-pressed={listingType === "FOR SALE"}
             type="button"
           >
             For Sale
@@ -201,7 +200,7 @@ export default function FilterPanel({
                 ? "bg-blue-600 text-white shadow-inner"
                 : "bg-gray-50 text-gray-700 hover:bg-gray-100"
             }`}
-            aria-pressed={listingType === "rent"}
+            aria-pressed={listingType === "FOR RENT"}
             type="button"
           >
             For Rent

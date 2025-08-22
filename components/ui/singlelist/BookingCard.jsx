@@ -6,9 +6,9 @@ import { GoQuestion } from "react-icons/go";
 export default function BookingCard({ property, onBookingClick, isMounted }) {
   const formatPrice = useCallback(
     (price) => {
-      return `${property.currency}${price.toLocaleString()}`;
+      return `${property.price}${price.toLocaleString()}`;
     },
-    [property.currency]
+    [property.price]
   );
 
   const formatDate = useCallback(
@@ -25,12 +25,13 @@ export default function BookingCard({ property, onBookingClick, isMounted }) {
 
       {/* Price */}
       <div>
-        <span className="text-sm text-blue-900">Monthly rent:</span>
+        <span className="text-sm text-blue-900">
+          {property.category === "FOR RENT" ? "Monthly Rent" : "Asking Price"}
+        </span>
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-bold text-red-600">
-            {formatPrice(property.price)}
+            {property.price}
           </span>
-          <span className="text-gray-600">{property.priceUnit}</span>
         </div>
       </div>
 
@@ -39,15 +40,15 @@ export default function BookingCard({ property, onBookingClick, isMounted }) {
         <h3 className="font-semibold text-blue-900">Property Details</h3>
         <div className="space-y-3 text-sm">
           <DetailRow label="Type:" value={property.type} />
-          <DetailRow
-            label="Apartment area:"
-            value={`${property.area} ${property.areaUnit}`}
-          />
+          <DetailRow label="Apartment area:" value={property.sqft} />
           <DetailRow label="Built:" value={property.builtYear} />
-          <DetailRow label="Bedrooms:" value={property.bedrooms} />
-          <DetailRow label="Bathrooms:" value={property.bathrooms} />
-          <DetailRow label="Parking places:" value={property.parkingSpaces} />
-          <DetailRow label="Pets allowed:" value={property.petsAllowed} />
+          <DetailRow label="Bedrooms:" value={property.beds} />
+          <DetailRow label="Bathrooms:" value={property.baths} />
+          <DetailRow label="Parking places:" value={property.parkingspace} />
+          <DetailRow
+            label="Pets allowed:"
+            value={property.petsallowed === true ? "Yes" : "No"}
+          />
         </div>
       </div>
 

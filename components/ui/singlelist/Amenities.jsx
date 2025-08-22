@@ -20,7 +20,7 @@ export default function AmenitiesSection({ amenities = [] }) {
       {availableAmenities.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {availableAmenities.map((amenity, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div key={amenity.id || index} className="flex items-center gap-2">
               <AmenityIcon iconName={amenity.icon} />
               <span>{amenity.name}</span>
             </div>
@@ -36,9 +36,9 @@ export default function AmenitiesSection({ amenities = [] }) {
             Not included in rent
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {unavailableAmenities.map((amenity) => (
+            {unavailableAmenities.map((amenity, index) => (
               <div
-                key={amenity.id}
+                key={amenity.id || index}
                 className="flex items-center gap-2 text-gray-400"
               >
                 <AmenityIcon iconName={amenity.icon} />

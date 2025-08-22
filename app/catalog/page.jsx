@@ -39,9 +39,7 @@ export default function CatalogPage() {
   const { propertyTypes, locations } = useMemo(() => {
     const types = [...new Set(properties.map((p) => p.type).filter(Boolean))];
     const locs = [
-      ...new Set(
-        properties.map((p) => `${p.city}, ${p.state}`).filter(Boolean)
-      ),
+      ...new Set(properties.map((p) => `${p.location}`).filter(Boolean)),
     ];
     return { propertyTypes: types, locations: locs };
   }, []);
@@ -51,8 +49,8 @@ export default function CatalogPage() {
     return properties.filter((property) => {
       // Skip properties that don't match listing type
       if (
-        (listingType === "buy" && property.forRent) ||
-        (listingType === "rent" && !property.forRent)
+        (listingType === "FOR RENT" && property.category) ||
+        (listingType === "FOR SALE" && !property.category)
       ) {
         return false;
       }
@@ -64,19 +62,14 @@ export default function CatalogPage() {
           !(
             property.title?.toLowerCase().includes(searchTerm) ||
             property.description?.toLowerCase().includes(searchTerm) ||
-            `${property.city}, ${property.state}`
-              .toLowerCase()
-              .includes(searchTerm)
+            `${property.location}`.toLowerCase().includes(searchTerm)
           )
         )
           return false;
       }
 
       if (filters.type && property.type !== filters.type) return false;
-      if (
-        filters.location &&
-        `${property.city}, ${property.state}` !== filters.location
-      )
+      if (filters.location && `${property.location}` !== filters.location)
         return false;
 
       if (filters.priceRange) {
@@ -85,14 +78,11 @@ export default function CatalogPage() {
         if (price < min || price > max) return false;
       }
 
-      if (
-        filters.bedrooms &&
-        (property.bedrooms || 0) < parseInt(filters.bedrooms)
-      )
+      if (filters.bedrooms && (property.beds || 0) < parseInt(filters.bedrooms))
         return false;
       if (
         filters.bathrooms &&
-        (property.bathrooms || 0) < parseInt(filters.bathrooms)
+        (property.baths || 0) < parseInt(filters.bathrooms)
       )
         return false;
 
@@ -190,24 +180,23 @@ export default function CatalogPage() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                     {currentProperties.map((property) => (
-                      <Link key={property.id} href={`/catalog/${property.id}`}>
-                        <PropertyCardWithCompare
-                          property={{
-                            ...property,
-                            price:
-                              property.priceFormatted ||
-                              `${property.price?.toLocaleString()}`,
-                            location: `${property.location}`,
-                            beds: property.beds,
-                            baths: property.baths,
-                          }}
-                          isSelected={compareList.some(
-                            (p) => p.id === property.id
-                          )}
-                          onToggleCompare={handleToggleCompare}
-                          compareCount={compareList.length}
-                        />
-                      </Link>
+                      <PropertyCardWithCompare
+                        key={property.id}
+                        property={{
+                          ...property,
+                          price:
+                            property.priceFormatted ||
+                            `${property.price?.toLocaleString()}`,
+                          location: `${property.location}`,
+                          beds: property.beds,
+                          baths: property.baths,
+                        }}
+                        isSelected={compareList.some(
+                          (p) => p.id === property.id
+                        )}
+                        onToggleCompare={handleToggleCompare}
+                        compareCount={compareList.length}
+                      />
                     ))}
                   </div>
 

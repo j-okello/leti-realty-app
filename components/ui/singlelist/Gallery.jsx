@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Heart, Share2, Play } from "lucide-react";
 import { BsSearch } from "react-icons/bs";
 import Image from "next/image";
+import FavoriteButton from "@/components/shared/FavoriteButton";
 
 export default function ImageGallery({
-  images,
+  images = [],
   selectedImage,
   onImageSelect,
   onImagePreview,
@@ -12,12 +13,26 @@ export default function ImageGallery({
 }) {
   const [showSearch, setShowSearch] = useState(false);
 
-  const handlePreviewClick = () => {
-    const selectedIndex = images.findIndex(
-      (img) => img.id === selectedImage.id
+  // Early return if no images
+  if (!images || images.length === 0) {
+    return (
+      <div className="w-full h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">
+        <p className="text-gray-500">No images available</p>
+      </div>
     );
-    if (selectedIndex >= 0) {
-      onImagePreview(selectedIndex);
+  }
+
+  // Use first image as fallback if selectedImage is null
+  const currentImage = selectedImage || images[0];
+
+  const handlePreviewClick = () => {
+    if (currentImage && onImagePreview) {
+      const selectedIndex = images.findIndex(
+        (img) => img.id === currentImage.id
+      );
+      if (selectedIndex >= 0) {
+        onImagePreview(selectedIndex);
+      }
     }
   };
 
@@ -28,15 +43,19 @@ export default function ImageGallery({
         <button
           onClick={handlePreviewClick}
           className="w-full h-[600px] relative focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          aria-label={`Preview ${selectedImage.alt}`}
+          aria-label={`Preview ${currentImage?.alt || "Property Image"}`}
         >
           <Image
-            src={selectedImage.url}
-            alt={selectedImage.alt}
+            src={currentImage?.url || "/placeholder-image.jpg"}
+            alt={currentImage?.alt || "Property image"}
             fill
             className="object-cover"
             priority
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
+            onError={(e) => {
+              // Handle Image component error differently
+              console.log("Image failed to load:", currentImage?.url);
+            }}
           />
         </button>
 
@@ -54,18 +73,8 @@ export default function ImageGallery({
 
         {/* Action Buttons */}
         <div className="absolute top-4 right-4 flex gap-2">
-          <button
-            className="bg-white p-2 rounded-full hover:shadow-md hover:bg-gray-50 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            aria-label="Add to favorites"
-          >
-            <Heart className="w-5 h-5 text-gray-600" />
-          </button>
-          <button
-            className="bg-white p-2 rounded-full shadow-md hover:bg-gray-50 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            aria-label="Share property"
-          >
-            <Share2 className="w-5 h-5 text-gray-600" />
-          </button>
+          {/*Favorite Button */}
+          <FavoriteButton />
         </div>
 
         {hasVideo && (
@@ -83,23 +92,26 @@ export default function ImageGallery({
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {images.map((image, index) => (
           <button
-            key={image.id}
-            onClick={() => onImageSelect(image, index)}
+            key={image?.id || index}
+            onClick={() => onImageSelect?.(image, index)}
             className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 transition-all ${
-              selectedImage.id === image.id
+              currentImage?.id === image?.id
                 ? "border-red-500 "
                 : "border-gray-200 hover:border-gray-300"
             } focus:outline-none `}
-            aria-label={`View ${image.alt}`}
-            aria-current={selectedImage.id === image.id ? "true" : "false"}
+            aria-label={`View ${image?.alt || `image ${index + 1}`}`}
+            aria-current={currentImage?.id === image?.id ? "true" : "false"}
           >
             <Image
-              src={image.url}
-              alt={image.alt}
+              src={image?.url || "/placeholder-image.jpg"}
+              alt={image?.alt || `Property image ${index + 1}`}
               width={80}
               height={64}
               className="w-full h-full object-cover"
               loading="lazy"
+              onError={(e) => {
+                console.log("Thumbnail failed to load:", image?.url);
+              }}
             />
           </button>
         ))}
