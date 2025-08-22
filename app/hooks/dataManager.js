@@ -49,7 +49,11 @@ const useProperty = (catalogId) => {
   }, [fetchProperty]);
 
   useEffect(() => {
-    if (catalogId) {
+    if (!catalogId) {
+      setError("No property ID provided");
+      setIsLoading(false);
+      return;
+    } else {
       fetchProperty();
     }
   }, [catalogId, fetchProperty]);
