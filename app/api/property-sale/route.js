@@ -1,4 +1,4 @@
-import { checkRateLimit } from "@/app/lib/rateLimit";
+/* import { checkRateLimit } from "@/app/lib/rateLimit";
 import { NextResponse } from "next/server";
 
 function getClientIp(req) {
@@ -124,3 +124,4 @@ export async function POST(req) {
     );
   }
 }
+ */
