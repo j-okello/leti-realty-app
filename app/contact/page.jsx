@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useEffect, useState } from "react";
+import { submitContactForm } from "../actions/post-actions";
+import handleFormSubmit from "../middleware/submitFormAction";
 import Breadcrumb from "@/components/shared/Breadcrumb";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { Field } from "@headlessui/react";
 import InputField from "@/components/shared/FormField";
 import PhoneInput from "@/components/shared/PhoneSelect";
 import PrivacyPolicySwitch from "@/components/shared/PolicyButton";
-//import RecaptchaWidget from "@/components/shared/RecaptchaWidget";
+// import RecaptchaWidget from "@/components/shared/RecaptchaWidget";
 import Submit from "@/components/shared/SubmitButton";
 import useFormValidation from "../hooks/useFormValidation";
 
 const breadcrumbItems = [{ label: "Contact us", href: "/contact" }];
-const info = [
+const contactInfo = [
   {
     title: "Get in touch",
     description:
@@ -24,6 +26,11 @@ const info = [
 ];
 
 export default function Contact() {
+  const [submitStatus, setSubmitStatus] = useState({
+    success: false,
+    message: "",
+  });
+
   const validationSchema = {
     firstName: [{ type: "required", message: "First name is required" }],
     lastName: [{ type: "required", message: "Last name is required" }],
@@ -62,6 +69,7 @@ export default function Contact() {
   const {
     values,
     errors,
+    setErrors,
     isSubmitting,
     handleChange,
     handlePhoneChange,
@@ -72,50 +80,67 @@ export default function Contact() {
     touched,
   } = useFormValidation(initialValues, validationSchema);
 
-  const handleFormSubmit = async (formData) => {
-    try {
-      console.log("Submitting form data", formData);
-      reset();
-    } catch (error) {
-      console.log("error submitting the form", error);
-    }
+  // Cleanup timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    let timeoutId;
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, []);
+
+  const submitForm = async () => {
+    await handleFormSubmit({
+      formData: values,
+      setSubmitStatus,
+      serverSubmitAction: submitContactForm,
+      setErrors,
+      reset,
+    });
   };
+
   return (
     <section id="contact">
       <div className="mt-6 p-3 w-full bg-blue-50">
         <Breadcrumb items={breadcrumbItems} />
       </div>
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-        {info.map((i, index) => (
+        {/* Contact Information */}
+        {contactInfo.map((contact, index) => (
           <div key={index} className="p-4 md:p-8">
             <h1 className="md:text-5xl text-2xl font-light text-blue-900 mb-3">
-              {i.title}
+              {contact.title}
             </h1>
             <p className="text-pretty font-light mb-5 text-slate-700">
-              {i.description}
+              {contact.description}
             </p>
             <div className="space-y-3 text-pretty font-light">
               <div className="flex items-start gap-4">
                 <MapPin className="w-5 h-5 mt-1 flex-shrink-0 text-blue-900" />
-                <span className="text-pretty">{i.location}</span>
+                <span>{contact.location}</span>
               </div>
               <div className="flex items-center gap-4">
                 <Phone className="w-5 h-5 text-blue-900" />
-                <span>{i.phone}</span>
+                <span>{contact.phone}</span>
               </div>
               <div className="flex items-center gap-4">
                 <Mail className="w-5 h-5 text-blue-900" />
-                <span>{i.mail}</span>
+                <span>{contact.mail}</span>
               </div>
             </div>
           </div>
         ))}
+
+        {/* Contact Form */}
         <div className="p-4 md:p-8">
           <div className="bg-blue-50 h-full p-6 min-h-64 rounded-lg">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleSubmit(handleFormSubmit);
+                handleSubmit(submitForm);
               }}
               className="mx-auto max-w-xl"
             >
@@ -200,7 +225,6 @@ export default function Contact() {
                     checked={values.agreeToPolicy}
                     onChange={(checked) => setValue("agreeToPolicy", checked)}
                     errors={errors}
-                    link="/privacy-policy"
                     disabled={isSubmitting}
                     touched={touched}
                   />
@@ -208,13 +232,38 @@ export default function Contact() {
 
                 <div className="sm:col-span-2 mt-4">
                   <Submit disabled={isSubmitting} />
+
+                  {/* Loading message */}
                   {isSubmitting && (
-                    <p className="mt-2 text-sm text-blue-600">
+                    <p
+                      className="mt-2 text-sm text-blue-600"
+                      role="status"
+                      aria-live="polite"
+                    >
                       Submitting your message...
                     </p>
                   )}
+
+                  {/* Success / error alert */}
+                  {!isSubmitting && submitStatus.message && (
+                    <div
+                      className={`p-4 mt-4 rounded ${
+                        submitStatus.success
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                      role="alert"
+                      aria-live="polite"
+                    >
+                      {submitStatus.message}
+                    </div>
+                  )}
+
+                  {/* Form-level error */}
                   {errors.form && (
-                    <p className="mt-2 text-sm text-red-600">{errors.form}</p>
+                    <p className="mt-2 text-sm text-red-600" role="alert">
+                      {errors.form}
+                    </p>
                   )}
                 </div>
               </div>

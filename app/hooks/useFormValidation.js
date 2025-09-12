@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { validateForm } from "../utils/forms/FormValidation";
 
 // Helper function for phone validation (implement based on your needs)
@@ -122,25 +122,49 @@ const useFormValidation = (initialValues = {}, validationSchema = {}) => {
 
   const handleSubmit = useCallback(
     async (onSubmit) => {
+      if (isSubmitting) return; // Prevent double submission
+
       setIsSubmitting(true);
-      const result = validate();
 
-      if (result.isValid) {
-        try {
+      try {
+        const result = validate();
+
+        if (result.isValid) {
           await onSubmit(values);
-        } catch (error) {
-          console.error("Form submission error:", error);
-          setErrors((prev) => ({
-            ...prev,
-            form: error.message || "Submission failed",
-          }));
+          // Clear form-level errors on successful submission
+          setErrors((prev) => {
+            const { form, ...otherErrors } = prev;
+            return otherErrors;
+          });
+        } else {
+          // Mark all schema fields as touched to show errors
+          const schemaFields = Object.keys(validationSchemaRef.current);
+          const allTouched = schemaFields.reduce(
+            (acc, key) => {
+              acc[key] = true;
+              return acc;
+            },
+            { ...touched }
+          );
+          setTouched(allTouched);
         }
-      }
 
-      setIsSubmitting(false);
-      return result;
+        return result;
+      } catch (error) {
+        console.error("Form submission error:", error);
+        const errorMessage =
+          error?.message || "Submission failed. Please try again.";
+        setErrors((prev) => ({ ...prev, form: errorMessage }));
+
+        return {
+          isValid: false,
+          errors: { form: errorMessage },
+        };
+      } finally {
+        setIsSubmitting(false);
+      }
     },
-    [values, validate]
+    [values, validate, isSubmitting, touched]
   );
 
   const reset = useCallback(() => {
@@ -154,20 +178,48 @@ const useFormValidation = (initialValues = {}, validationSchema = {}) => {
     setValues((prev) => ({ ...prev, [name]: value }));
   }, []);
 
+  // Utility function to check if a field has an error and is touched
+  const getFieldError = useCallback(
+    (fieldName) => {
+      return touched[fieldName] ? errors[fieldName] : undefined;
+    },
+    [touched, errors]
+  );
+
+  // Utility function to check if form is valid
+  const isFormValid = useMemo(() => {
+    return Object.keys(errors).length === 0;
+  }, [errors]);
+
+  // Utility function to check if form has been modified
+  const isDirty = useMemo(() => {
+    return JSON.stringify(values) !== JSON.stringify(initialValues);
+  }, [values, initialValues]);
+
   return {
+    // State
     values,
     errors,
     touched,
     isSubmitting,
+    isFormValid,
+    isDirty,
+
+    // Handlers
     handleChange,
-    handlePhoneChange, // Make sure to return this
+    handlePhoneChange,
     handleBlur,
     handleSubmit,
+
+    // Methods
     validate,
     reset,
     setValue,
     setValues,
     setErrors,
+
+    // Utilities
+    getFieldError,
   };
 };
 

@@ -1,161 +1,160 @@
-// lib/rateLimit.js
-import Redis from "ioredis";
-import { RateLimiterRedis, RateLimiterMemory } from "rate-limiter-flexible";
+// app/lib/rateLimitService.js
+import { Redis } from "@upstash/redis";
 
-// Configuration constants
+const redis = Redis.fromEnv();
+
 const RATE_LIMIT_CONFIG = {
-  points: 7, // Number of points
-  duration: 60 * 60, // Per hour (in seconds)
-  blockDuration: 60 * 60, // Block for 1 hour if exceeded
-  keyPrefix: "formLimiter", // Redis key prefix
-  inMemoryFallback: true, // Enable in-memory fallback
-  memoryCleanupInterval: 5 * 60 * 1000, // 5 minutes
+  points: 7, // how many requests allowed
+  duration: 60 * 60, // per 1 hour in seconds
+  blockDuration: 60 * 60, // block for 1 hour if exceeded
+  keyPrefix: "formLimiter",
+  inMemoryFallback: true,
 };
 
 class RateLimitService {
-  constructor() {
-    this.redisClient = null;
-    this.rateLimiter = null;
-    this.memoryStore = new Map();
-    this.initialize();
+  constructor(config = RATE_LIMIT_CONFIG) {
+    this.config = config;
+    this.localCache = new Map(); // For in-memory fallback
   }
 
-  async initialize() {
-    await this.setupRedisClient();
-    this.setupMemoryCleanup();
-  }
-
-  async setupRedisClient() {
-    if (!process.env.REDIS_URL) {
-      console.warn("REDIS_URL not configured. Redis rate limiting disabled.");
-      return;
-    }
+  async checkRateLimit(ip) {
+    const key = `${this.config.keyPrefix}:${ip}`;
+    const blockKey = `${key}:blocked`;
+    const now = Date.now();
 
     try {
-      this.redisClient = new Redis(process.env.REDIS_URL, {
-        retryStrategy: (times) => Math.min(times * 100, 5000),
-        maxRetriesPerRequest: 3,
-        enableOfflineQueue: false,
-        connectTimeout: 5000,
-      });
+      // 1. Check if IP is blocked
+      const blockedUntil = await redis.get(blockKey);
+      if (blockedUntil && now < Number(blockedUntil)) {
+        return {
+          allowed: false,
+          retryAfter: Math.ceil((blockedUntil - now) / 1000),
+          remainingPoints: 0,
+          limit: this.config.points,
+          reset: blockedUntil,
+        };
+      }
 
-      this.redisClient.on("error", (err) => {
-        console.error("Redis error:", err.message);
-      });
+      // 2. Count attempts (INCR with expiry)
+      const count = await redis.incr(key);
 
-      this.redisClient.on("connect", () => {
-        console.log("Redis connected successfully");
-        this.rateLimiter = new RateLimiterRedis({
-          ...RATE_LIMIT_CONFIG,
-          storeClient: this.redisClient,
+      if (count === 1) {
+        // first request → set expiry
+        await redis.expire(key, this.config.duration);
+      }
+
+      // 3. Check if exceeded
+      if (count > this.config.points) {
+        const blockUntil = now + this.config.blockDuration * 1000;
+        await redis.set(blockKey, blockUntil, {
+          ex: this.config.blockDuration,
         });
-      });
 
-      // Test the connection
-      await this.redisClient.ping();
+        return {
+          allowed: false,
+          retryAfter: this.config.blockDuration,
+          remainingPoints: 0,
+          limit: this.config.points,
+          reset: blockUntil,
+        };
+      }
+
+      // ✅ Allowed
+      return {
+        allowed: true,
+        retryAfter: 0,
+        remainingPoints: this.config.points - count,
+        limit: this.config.points,
+        reset: now + this.config.duration * 1000,
+      };
     } catch (error) {
-      console.error("Redis connection failed:", error.message);
-      this.redisClient = null;
+      console.error("redis rate limit error:", error.message);
+
+      if (this.config.inMemoryFallback) {
+        return this.checkRateLimitInMemory(ip);
+      }
+
+      // Default to allowing requests if redis fails
+      return {
+        allowed: true,
+        retryAfter: 0,
+        remainingPoints: this.config.points,
+        limit: this.config.points,
+        reset: now + this.config.duration * 1000,
+      };
     }
   }
 
-  setupMemoryCleanup() {
-    if (!RATE_LIMIT_CONFIG.inMemoryFallback) return;
-
-    setInterval(() => {
-      const now = Date.now();
-      for (const [key, data] of this.memoryStore.entries()) {
-        if (now - data.timestamp > RATE_LIMIT_CONFIG.duration * 1000) {
-          this.memoryStore.delete(key);
-        }
-      }
-    }, RATE_LIMIT_CONFIG.memoryCleanupInterval);
-  }
-
-  async checkRateLimitMemory(ip) {
-    const key = `${RATE_LIMIT_CONFIG.keyPrefix}:${ip}`;
+  // In-memory fallback implementation
+  checkRateLimitInMemory(ip) {
     const now = Date.now();
-    const windowStart = now - RATE_LIMIT_CONFIG.duration * 1000;
+    const key = `${this.config.keyPrefix}:${ip}`;
 
-    let data = this.memoryStore.get(key) || {
-      attempts: [],
-      blockedUntil: 0,
-    };
+    if (!this.localCache.has(key)) {
+      this.localCache.set(key, {
+        attempts: [],
+        blockedUntil: 0,
+      });
+    }
 
-    // Clean up old attempts
-    data.attempts = data.attempts.filter((t) => t > windowStart);
+    const data = this.localCache.get(key);
 
     // Check if blocked
-    if (now < data.blockedUntil) {
+    if (data.blockedUntil && now < data.blockedUntil) {
       return {
         allowed: false,
         retryAfter: Math.ceil((data.blockedUntil - now) / 1000),
         remainingPoints: 0,
+        limit: this.config.points,
+        reset: data.blockedUntil,
       };
     }
 
+    // Filter old attempts
+    const windowStart = now - this.config.duration * 1000;
+    data.attempts = data.attempts.filter((attempt) => attempt >= windowStart);
+
     // Check if limit exceeded
-    if (data.attempts.length >= RATE_LIMIT_CONFIG.points) {
-      data.blockedUntil = now + RATE_LIMIT_CONFIG.blockDuration * 1000;
-      this.memoryStore.set(key, { ...data, timestamp: now });
+    if (data.attempts.length >= this.config.points) {
+      data.blockedUntil = now + this.config.blockDuration * 1000;
+      data.attempts = []; // Reset attempts when blocking
 
       return {
         allowed: false,
-        retryAfter: RATE_LIMIT_CONFIG.blockDuration,
+        retryAfter: this.config.blockDuration,
         remainingPoints: 0,
+        limit: this.config.points,
+        reset: data.blockedUntil,
       };
     }
 
     // Record attempt
     data.attempts.push(now);
-    this.memoryStore.set(key, { ...data, timestamp: now });
 
     return {
       allowed: true,
       retryAfter: 0,
-      remainingPoints: RATE_LIMIT_CONFIG.points - data.attempts.length,
+      remainingPoints: this.config.points - data.attempts.length,
+      limit: this.config.points,
+      reset: now + this.config.duration * 1000,
     };
   }
 
-  async checkRateLimit(ip) {
+  async resetRateLimit(ip) {
+    const key = `${this.config.keyPrefix}:${ip}`;
+    const blockKey = `${key}:blocked`;
+
     try {
-      // Try Redis first if available
-      if (this.rateLimiter && this.redisClient?.status === "ready") {
-        const res = await this.rateLimiter.consume(ip);
-        return {
-          allowed: true,
-          retryAfter: 0,
-          remainingPoints: res.remainingPoints,
-        };
-      }
-
-      // Fallback to memory if enabled
-      if (RATE_LIMIT_CONFIG.inMemoryFallback) {
-        console.warn("Using in-memory rate limiting (Redis not available)");
-        return this.checkRateLimitMemory(ip);
-      }
-
-      // Allow if no rate limiting available
-      return { allowed: true, retryAfter: 0 };
+      await Promise.all([redis.del(key), redis.del(blockKey)]);
+      this.localCache.delete(key);
+      return true;
     } catch (error) {
-      if (error.msBeforeNext) {
-        // Rate limit exceeded
-        return {
-          allowed: false,
-          retryAfter: Math.ceil(error.msBeforeNext / 1000),
-          remainingPoints: error.remainingPoints || 0,
-        };
-      }
-
-      console.error("Rate limit check failed:", error.message);
-      return { allowed: true, retryAfter: 0 }; // Fail open
+      console.error("Error resetting rate limit:", error);
+      return false;
     }
   }
 }
 
-// Singleton instance
+// Singleton
 const rateLimitService = new RateLimitService();
-
-export async function checkRateLimit(ip) {
-  return rateLimitService.checkRateLimit(ip);
-}
+export default rateLimitService;

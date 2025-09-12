@@ -15,31 +15,31 @@ model ContactForm {
   updatedAt     DateTime     @updatedAt
   firstName     String
   lastName      String
-  email         String       @unique
+  email         String
   message       String
   agreeToPolicy Boolean
-  phone         PhoneNumber? @relation(fields: [phoneId], references: [id], onDelete: Cascade)
+  phone         PhoneNumber? @relation(fields: [phoneId], references: [id])
   phoneId       String?      @unique
+
+  // @@unique([email]) // Changed from @unique on email field to allow multiple forms from same email
 }
 
 // Contact PhoneNumber
 model PhoneNumber {
-  id            String       @id @default(cuid())
-  code          String
-  phoneCode     String
-  number        String
-  fullNumber    String
-  contactForm   ContactForm? @relation
-  contactFormId String?      @unique
+  id         String       @id @default(cuid())
+  code       String
+  phoneCode  String
+  number     String
+  fullNumber String
+  contact    ContactForm?
 }
 
 // PSRF Property Sale Request Form Model
 model PropertySaleRequest {
-  id               String           @id @default(cuid())
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  id               String                @id @default(cuid())
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
   fullName         String
-  phone            String
   email            String
   propertyAddress  String
   propertyType     PropertyType
@@ -51,43 +51,75 @@ model PropertySaleRequest {
   timeline         Timeline
   additionalInfo   String?
   agreeToPolicy    Boolean
+  phone            SaleRequestFormPhone? @relation(fields: [phoneId], references: [id], onDelete: Cascade)
+  phoneId          String                @unique
+}
+
+// Booking PhoneNumber
+model SaleRequestFormPhone {
+  id         String               @id @default(cuid())
+  code       String
+  phoneCode  String
+  number     String
+  fullNumber String
+  contact    PropertySaleRequest?
+}
+
+//Booking form
+model BookingForm {
+  id            String            @id @default(cuid())
+  fullName      String
+  property      String
+  bookingDate   DateTime          @map("theDate")
+  bookingTime   DateTime          @map("theTime")
+  agreeToPolicy Boolean
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  phone         BookingFormPhone? @relation(fields: [phoneId], references: [id], onDelete: Cascade)
+  phoneId       String?           @unique
+}
+
+// Booking PhoneNumber
+model BookingFormPhone {
+  id         String       @id @default(cuid())
+  code       String
+  phoneCode  String
+  number     String
+  fullNumber String
+  contact    BookingForm?
 }
 
 // Property Models
 model Property {
-  id            Int              @id @default(autoincrement())
-  adNumber      String           @unique
+  id            Int          @id @default(autoincrement())
   title         String
   description   String
-  image         String // main image URL
-  price         Float // Changed from String to Float for numerical operations
+  price         Float
   location      String
-  beds          Int
-  baths         Int
-  sqft          Int
+  bedrooms      Int
+  bathrooms     Int
+  size          Int
   category      Category
-  propertyType  PropertyType     @map("property_type")
-  status        PropertyStatus[]
-  parkingSpace  Int              @map("parkingspace")
-  petsAllowed   Boolean          @map("petsallowed")
+  propertyType  PropertyType @map("property_type")
+  parkingSpace  Int          @map("parkingspace")
+  petsAllowed   Boolean      @map("petsallowed")
   verified      Boolean
-  isNew         Boolean          @map("isnew")
-  hasVideo      Boolean          @map("hasvideo")
-  views         Int              @default(0)
-  publishedDate DateTime         @map("publisheddate")
-  createdAt     DateTime         @default(now())
+  isNew         Boolean      @map("isnew")
+  featured      Boolean      @map("featured") // Fixed capitalization
+  hasVideo      Boolean      @map("hasvideo")
+  views         Int          @default(0)
+  publishedDate DateTime     @map("publisheddate")
+  createdAt     DateTime     @default(now())
 
   // Relations
   images      PropertyImage[]
   amenities   Amenity[]
-  notIncluded NotIncludedItem[] @relation("NotIncludedItems")
+  notIncluded NotIncludedItem[]
   visitors    Visitor[]
 
-  // Creator/Updater relations
-  createdBy   User?   @relation("CreatedProperties", fields: [createdById], references: [id])
-  createdById String?
-  updatedBy   User?   @relation("UpdatedProperties", fields: [updatedById], references: [id])
-  updatedById String?
+  // Single admin user relation
+  adminUser   User   @relation("AdminProperties", fields: [adminUserId], references: [id])
+  adminUserId String
 
   @@map("properties")
 }
@@ -97,7 +129,7 @@ model PropertyImage {
   url        String
   alt        String
   isMain     Boolean  @default(false)
-  property   Property @relation(fields: [propertyId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   propertyId Int
 
   @@map("property_images")
@@ -106,7 +138,7 @@ model PropertyImage {
 model Amenity {
   id         Int      @id @default(autoincrement())
   name       String
-  property   Property @relation(fields: [propertyId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   propertyId Int
 
   @@map("amenities")
@@ -115,7 +147,7 @@ model Amenity {
 model NotIncludedItem {
   id         Int      @id @default(autoincrement())
   name       String
-  property   Property @relation("NotIncludedItems", fields: [propertyId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   propertyId Int
 
   @@map("not_included_items")
@@ -125,23 +157,26 @@ model Visitor {
   id         String   @id @default(cuid())
   email      String
   favorite   Boolean  @default(false)
-  visitDate  DateTime
-  property   Property @relation(fields: [propertyId], references: [id])
-  propertyId Int // Changed to Int to match Property.id type
+  createdAt  DateTime @default(now())
+  upDatedAt  DateTime @updatedAt
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId Int
 
   @@map("visitors")
 }
 
+// Single admin user model
 model User {
-  id                String     @id @default(cuid())
-  email             String     @unique
-  emailVerified     DateTime?
-  image             String?
-  name              String
-  accounts          Account[]
-  createdProperties Property[] @relation("CreatedProperties")
-  updatedProperties Property[] @relation("UpdatedProperties")
-  sessions          Session[]
+  id            String     @id @default(cuid())
+  email         String     @unique
+  emailVerified DateTime?
+  image         String?
+  name          String
+  passwordHash  String? // Added for admin authentication
+  role          UserRole   @default(ADMIN) // Added role field
+  accounts      Account[]
+  properties    Property[] @relation("AdminProperties")
+  sessions      Session[]
 
   // 2FA
   twoFactorCode    String?
@@ -163,7 +198,7 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id])
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -174,15 +209,9 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
-}
-
-enum PropertyStatus {
-  Featured
-  New
-  Verified
 }
 
 enum Category {
@@ -219,4 +248,9 @@ enum PropertyType {
   SINGLE_FAMILY_HOME
   MULTI_FAMILY_HOME
   OTHER
+}
+
+// Added user role enum
+enum UserRole {
+  ADMIN
 }

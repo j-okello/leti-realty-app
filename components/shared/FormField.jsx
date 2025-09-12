@@ -3,30 +3,31 @@ import React from "react";
 
 export default function InputField({
   title,
+  icon,
   label,
   min,
   required = false,
   type = "text",
   value,
   onChange,
-  onBlur, // Added this
+  onBlur,
   options = [],
   placeholder = "",
   disabled = false,
   autoComplete = "off",
   className = "",
   errors = {},
-  touched = {}, // Added this
+  touched = {},
   helperText = "",
   multiline = false,
   rows = 4,
 }) {
   return (
-    <div className={`mb-4 ${className}`}>
+    <div className={`mb-4 w-full ${className}`}>
       {label && (
         <label
           htmlFor={title}
-          className={`block text-sm font-semibold text-blue-900 ${
+          className={`block text-sm font-semibold text-blue-900 md:text-base ${
             disabled ? "text-gray-400" : ""
           }`}
         >
@@ -42,10 +43,11 @@ export default function InputField({
             rows={rows}
             value={value || ""}
             onChange={onChange}
+            icon={icon}
             onBlur={onBlur}
             placeholder={placeholder}
             disabled={disabled}
-            className={`block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-blue-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 ${
+            className={`block w-full rounded-md border-0 px-3 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-blue-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-sm sm:text-base md:px-3.5 md:py-2.5 ${
               errors[title] ? "ring-red-500 focus:ring-red-500" : ""
             } ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
             aria-invalid={errors[title] ? "true" : "false"}
@@ -56,9 +58,10 @@ export default function InputField({
             name={title}
             value={value || ""}
             onChange={onChange}
+            placeholder={placeholder}
             onBlur={onBlur}
             disabled={disabled}
-            className={`block w-full rounded-md border-0 px-3 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-blue-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 ${
+            className={`block w-full rounded-md border-0 px-3 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-blue-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-sm sm:text-base md:px-3.5 md:py-3 ${
               errors[title] ? "ring-red-500 focus:ring-red-500" : ""
             } ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
             aria-invalid={errors[title] ? "true" : "false"}
@@ -82,7 +85,7 @@ export default function InputField({
             placeholder={placeholder}
             disabled={disabled}
             autoComplete={autoComplete}
-            className={`block w-full rounded-md border-0 px-3 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-blue-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 ${
+            className={`block w-full rounded-md border-0 px-3 py-2.5 text-gray-900 shadow-sm ring-1 ring-inset ring-blue-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-sm sm:text-base md:px-3.5 md:py-3 ${
               errors[title] ? "ring-red-500 focus:ring-red-500" : ""
             } ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
             aria-invalid={errors[title] ? "true" : "false"}
@@ -91,12 +94,13 @@ export default function InputField({
       </div>
 
       {helperText && !errors[title] && (
-        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+        <p className="mt-1 text-sm text-gray-500 md:text-base">{helperText}</p>
       )}
 
-      {/* Show errors only if field has been touched or if there's an error */}
       {errors[title] && (touched[title] || errors[title]) && (
-        <p className="mt-1 text-sm text-red-600">{errors[title]}</p>
+        <p className="mt-1 text-sm text-red-600 md:text-base">
+          {errors[title]}
+        </p>
       )}
     </div>
   );

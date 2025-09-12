@@ -8,7 +8,7 @@ export default function PrivacyPolicySwitch({
   onChange,
   errors = {},
   required = true,
-  link = "#",
+  link = "/legal/data-privacy",
   className = "",
   disabled = false,
   touched = {},
@@ -54,7 +54,7 @@ export default function PrivacyPolicySwitch({
             rel="noopener noreferrer"
             tabIndex={disabled ? -1 : 0}
           >
-            privacy policy
+            Privacy Policy
           </Link>
           {required && <span className="text-red-600">*</span>}
         </Label>

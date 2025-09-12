@@ -2,11 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { PhoneNumberUtil } from "google-libphonenumber";
-import { checkRateLimit } from "@/app/lib/rateLimit";
-import { sendFormSubmissionEmail } from "@/app/lib/email";
-
-const phoneUtil = PhoneNumberUtil.getInstance();
+import rateLimitService from "../lib/rateLimit";
 
 const reasonForSelling = z.enum([
   "INVESTMENT_SALE",
@@ -17,9 +13,9 @@ const reasonForSelling = z.enum([
 ]);
 
 const timeline = z.enum([
-  "ASAP",
   "ONE_TO_THREE_MONTHS",
   "THREE_TO_SIX_MONTHS",
+  "SIX_TO_TWELVE_MONTHS",
   "FLEXIBLE",
 ]);
 
@@ -38,7 +34,12 @@ const propertyType = z.enum([
   "MULTI_FAMILY_HOME",
   "OTHER",
 ]);
-const contactSchema = z.object({
+
+const baseSchema = z.object({
+  ipAddress: z.string().optional(),
+});
+
+const contactSchema = baseSchema.extend({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
@@ -52,49 +53,106 @@ const contactSchema = z.object({
         message: "Phone number must contain only digits",
       }),
   }),
-  message: z.string().min(10, "Message must be at least 10 characters"),
+  message: z.string().min(5, "Message must be at least 10 characters"),
   agreeToPolicy: z.literal(true, {
     errorMap: () => ({ message: "You must accept the policy" }),
   }),
-  ipAddress: z.string().optional(),
 });
 
-const propertySaleRequestSchema = z.object({
-  fullName: z.string().trim(),
-  phone: z
-    .string()
-    .trim()
-    .refine((val) => /^\d+$/.test(val), {
-      message: "Phone number must contain digits only",
-    })
-    .refine(
-      (val, ctx) => {
-        const { code } = ctx.parent;
-        try {
-          const parsed = phoneUtil.parse(val, code);
-          return phoneUtil.isValidNumber(parsed);
-        } catch {
-          return false;
-        }
-      },
-      {
-        message: "Invalid phone number format for selected country",
-      }
-    ),
-
-  email: z.string().email().trim(),
-  propertyAddress: z.string().trim(),
+const propertySaleRequestSchema = baseSchema.extend({
+  fullName: z.string().min(1, "Full name is required").trim(),
+  phone: z.object({
+    code: z.string().min(1, "Country code is required"),
+    phoneCode: z.string().min(1, "Phone code is required"),
+    number: z
+      .string()
+      .min(6, "Phone number too short")
+      .refine((val) => /^\d+$/.test(val), {
+        message: "Phone number must contain only digits",
+      }),
+  }),
+  email: z.string().email("Invalid email address").trim(),
+  propertyAddress: z.string().min(1, "Property address is required").trim(),
   propertyType: propertyType,
-  other: z.string().trim(),
-  bedrooms: z.number(),
-  bathrooms: z.number(),
-  squareFootage: z.number(),
+  other: z.string().trim().optional(),
+  bedrooms: z.preprocess(
+    (val) => Number(val),
+    z.number().min(0, "Bedrooms must be 0 or more")
+  ),
+  bathrooms: z.preprocess(
+    (val) => Number(val),
+    z.number().min(0, "Bathrooms must be 0 or more")
+  ),
+  squareFootage: z.preprocess(
+    (val) => Number(val),
+    z.number().min(1, "Square footage must be greater than 0")
+  ),
   reasonForSelling: reasonForSelling,
   timeline: timeline,
-  additionalInfo: z.string().trim(),
-  agreeToPolicy: z.literal(true),
+  additionalInfo: z.string().trim().optional(),
+  agreeToPolicy: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the privacy policy" }),
+  }),
 });
 
+const bookingSchema = baseSchema.extend({
+  fullName: z.string().min(3, "Full name is required").trim(),
+  email: z.string().email("Invalid email address").trim(),
+  property: z.string().optional(),
+  phone: z.object({
+    code: z.string().min(1, "Country code is required"),
+    phoneCode: z.string().min(1, "Phone code is required"),
+    number: z
+      .string()
+      .min(6, "Phone number too short")
+      .refine((val) => /^\d+$/.test(val), {
+        message: "Phone number must contain only digits",
+      }),
+  }),
+  bookingDate: z.string().refine((val) => {
+    // Validate yyyy-mm-dd format (what HTML date input provides)
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    return regex.test(val);
+  }, "Please select a valid date"),
+  bookingTime: z.string(),
+  agreeToPolicy: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the privacy policy" }),
+  }),
+});
+
+const emailTemplates = {
+  CONTACT_FORM: {
+    subject: "New Contact Form Submission",
+    template: "contact_form",
+  },
+  PROPERTY_SALE_REQUEST: {
+    subject: "New Property Sale Request",
+    template: "property_sale_request",
+  },
+};
+// Email notification function (placeholder - implement based on your email service)
+async function sendFormSubmissionEmail(formType, data) {
+  try {
+    // Implement your email sending logic here
+    // For example, using Nodemailer, SendGrid, etc.
+    const templateConfig = emailTemplates[formType];
+    console.log(`Sending ${formType} notification email for:`, data.email);
+
+    //  await emailService.send({
+    //   to: process.env.ADMIN_EMAIL,
+    //   subject: templateConfig.subject,
+    //    html: generateEmailHtml(templateConfig.template, data)
+    //  });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send email notification:", error);
+    // Don't throw error - email failure shouldn't fail the form submission
+    return { success: false, error: error.message };
+  }
+}
+
+//Handle form submission
 async function handleFormSubmission({
   formData,
   schema,
@@ -102,99 +160,203 @@ async function handleFormSubmission({
   formType,
   ipAddress,
 }) {
-  // Rate limiting check
-  /*const rateLimit = await checkRateLimit(ipAddress);
-  if (!rateLimit.allowed) {
+  const clientIp = ipAddress || "unknown";
+  console.log(`Processing ${formType} submission from IP: ${clientIp}`);
+
+  //rateLimiting Check
+  const rateLimitCheck = await rateLimitService.checkRateLimit(clientIp);
+  if (!rateLimitCheck.allowed) {
     return {
       success: false,
-      message: `Too many submissions. Try again in ${rateLimit.retryAfter} seconds`,
+      errors: `Too many requests. Please try again in ${rateLimitCheck.retryAfter} seconds.`,
+      isRateLimit: true,
+      retryAfter: rateLimitCheck.retryAfter,
+      remainingPoints: rateLimitCheck.remainingPoints,
+      limit: rateLimitCheck.limit,
     };
-  }*/
-  const rawData = formData;
+  }
 
   try {
-    const validatedData = schema.parse(rawData);
+    // Inject ipAddress into the data before validation
+    const enrichedData = { ...formData, ipAddress: clientIp };
+
+    // Validate data
+    const validatedData = schema.parse(enrichedData);
+
+    // Save to DB
     const result = await createFunction(validatedData);
-    // Send email notification
-    await sendFormSubmissionEmail(formType, validatedData);
+
     return { success: true, message: "Submission successful", data: result };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        message: "Validation failed",
-        errors: error.errors.map((e) => ({
-          path: e.path.join("."),
-          message: e.message,
-        })),
+        errors: error.errors.reduce((acc, e) => {
+          acc[e.path.join(".")] = e.message;
+          return acc;
+        }, {}),
+        isValidationError: true,
       };
     }
-    console.error("submission error", error);
-    return { success: false, message: "Submission failed" };
+    console.error("Form submission failed:", error);
+    return { success: false, errors: "Submission failed. Please try again." };
   }
 }
 
-//specific action for contact form
-export async function submitContactForm(formData) {
+// Utility function to extract IP from headers
+function getClientIp(headers) {
+  try {
+    if (!headers) return "unknown";
+    // Check various headers that might contain the IP
+    const possibleHeaders = [
+      "x-forwarded-for",
+      "x-real-ip",
+      "x-client-ip",
+      "cf-connecting-ip", // Cloudflare
+      "fastly-client-ip", // Fastly
+      "true-client-ip", // Akamai and Cloudflare
+      "x-cluster-client-ip",
+    ];
+
+    for (const header of possibleHeaders) {
+      const value = headers[header] || headers[header.toUpperCase()];
+      if (value) {
+        const ips = value.split(",").map((ip) => ip.trim());
+        return ips[0]; // Return the first IP in the chain
+      }
+    }
+
+    if (headers.get) {
+      const forwardedFor = headers.get("x-forwarded-for");
+      if (forwardedFor) return forwardedFor.split(",")[0].trim();
+    }
+
+    return "127.0.0.1"; // fallback for local dev
+  } catch (error) {
+    console.error("Error extracting client IP:", error);
+    return "unknown";
+  }
+}
+
+// Specific action for contact form
+export async function submitContactForm(formData, headers = {}) {
+  const ipAddress = getClientIp(headers);
+
   return handleFormSubmission({
     formData,
     schema: contactSchema,
-    createFunction: async (data) => {
-      try {
-        const { phone, ...contactData } = data;
+    createFunction: async (data, clientIp) => {
+      const { phone, ...contactData } = data;
+      const fullNumber = `${phone.phoneCode}${phone.number}`;
 
-        // Generate fullNumber if not provided
-        const fullNumber =
-          phone.fullNumber || `${phone.phoneCode}${phone.number}`;
-
-        return await prisma.contactForm.create({
-          data: {
-            ...contactData,
-            phone: {
-              create: {
-                code: phone.code,
-                phoneCode: phone.phoneCode,
-                number: phone.number,
-                fullNumber: fullNumber,
-              },
+      return await prisma.ContactForm.create({
+        data: {
+          ...contactData,
+          phone: {
+            create: {
+              code: phone.code,
+              phoneCode: phone.phoneCode,
+              number: phone.number,
+              fullNumber: fullNumber,
             },
           },
-          include: {
-            phone: true,
-          },
-        });
-      } catch (error) {
-        console.error("Detailed contact form error:", {
-          error: error.message,
-          meta: error.meta, // Prisma-specific error details
-          stack: error.stack,
-        });
-
-        // Handle unique constraint violation (email)
-        if (error.code === "P2002") {
-          throw new Error("This email is already registered");
-        }
-
-        throw error;
-      }
+          ipAddress: clientIp,
+        },
+        include: {
+          phone: true,
+        },
+      });
     },
     formType: "Contact Form",
-    // ipAddress: formData.ipAddress || formData.get?.("ipAddress"),
+    ipAddress,
   });
 }
 
-//specific action for Property Sale Request form
-export async function submitPropertySaleRequestForm(formData) {
-  console.log("submitPropertySaleRequestForm called with:", formData);
+// Specific action for Property Sale Request form
+export async function submitPropertySaleRequestForm(formData, headers = {}) {
+  const ipAddress = getClientIp(headers);
 
   return handleFormSubmission({
     formData,
     schema: propertySaleRequestSchema,
-    createFunction: async (data) => {
-      const { dbData } = data;
-      return prisma.PropertySaleRequest.create({ data: dbData });
+    createFunction: async (data, clientIp) => {
+      const { phone, ...saleData } = data;
+      const fullNumber = `${phone.phoneCode}${phone.number}`;
+
+      return await prisma.propertySaleRequest.create({
+        data: {
+          ...saleData,
+          phone: {
+            create: {
+              code: phone.code,
+              phoneCode: phone.phoneCode,
+              number: phone.number,
+              fullNumber: fullNumber,
+            },
+          },
+          ipAddress: clientIp,
+        },
+        include: {
+          phone: true,
+        },
+      });
     },
-    formType: "Property Sales Request",
-    ipAddress: formData.ipAddress || formData.get?.("ipAddress"),
+    formType: "Property Sale Request",
+    ipAddress,
   });
+}
+
+//Specific Acton for Booking Form
+export async function submitBookingForm(formData, headers = {}) {
+  const ipAddress = getClientIp(headers);
+
+  return handleFormSubmission({
+    formData,
+    schema: bookingSchema,
+    createFunction: async (data, clientIp) => {
+      const { phone, property, ...bookingData } = data;
+      console.log(data);
+      const fullNumber = `${phone.phoneCode}${phone.number}`;
+
+      return await prisma.BookingForm.create({
+        data: {
+          ...bookingData,
+          property: property,
+          ipAddress: clientIp,
+          phone: {
+            create: {
+              code: phone.code,
+              phoneCode: phone.phoneCode,
+              number: phone.number,
+              fullNumber: fullNumber,
+            },
+          },
+        },
+        include: {
+          phone: true,
+        },
+      });
+    },
+    formType: "Book a Viewing Form",
+    ipAddress,
+  });
+}
+// Optional: Add a utility function to check rate limit status
+export async function checkRateLimitStatus(ipAddress) {
+  try {
+    return await rateLimitService.checkRateLimit(ipAddress);
+  } catch (error) {
+    console.error("Rate limit check failed:", error);
+    return { allowed: true, error: error.message };
+  }
+}
+
+// Optional: Add a function to reset rate limit (for admin purposes)
+export async function resetRateLimit(ipAddress) {
+  try {
+    return await rateLimitService.resetRateLimit(ipAddress);
+  } catch (error) {
+    console.error("Rate limit reset failed:", error);
+    return { success: false, error: error.message };
+  }
 }

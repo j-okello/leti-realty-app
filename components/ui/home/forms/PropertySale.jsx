@@ -1,4 +1,7 @@
 "use client";
+import { submitPropertySaleRequestForm } from "@/app/actions/post-actions";
+import handleFormSubmit from "@/app/middleware/submitFormAction";
+import { propertyOptions } from "@/app/lib/ListSelect";
 import { useEffect } from "react";
 import InputField from "@/components/shared/FormField";
 import PrivacyPolicySwitch from "@/components/shared/PolicyButton";
@@ -7,61 +10,15 @@ import PhoneInput from "@/components/shared/PhoneSelect";
 import { Field } from "@headlessui/react";
 import { X } from "lucide-react";
 
-const sellingOptions = [
-  { value: "Investment Sale", label: "Investment Sale" },
-  { value: "Upgrading", label: "Upgrading" },
-  { value: "Relocation", label: "Relocation" },
-  { value: "Downsizing", label: "Downsizing" },
-  { value: "Other", label: "Other" },
-];
+const typeOfProperty = propertyOptions.propertyType;
+const sellingOptions = propertyOptions.selling;
+const timelineOptions = propertyOptions.timeline;
 
-const timelineOptions = [
-  { value: "ASAP", label: "ASAP" },
-  { value: "1-3 months", label: "1-3 months" },
-  { value: "3-6 months", label: "3-6 months" },
-  { value: "Flexible", label: "Flexible" },
-];
-
-const propertyTypeOptions = [
-  { value: "Apartment", label: "Apartment" },
-  { value: "Bungalow", label: "Bungalow" },
-  { value: "Maisonette", label: "Maisonette" },
-  { value: "Studio Apartment", label: "Studio Apartment" },
-  { value: "Serviced Apartment", label: "Serviced Apartment" },
-  { value: "Penthouse", label: "Penthouse" },
-  { value: "Townhouse", label: "Townhouse" },
-  { value: "Villa", label: "Villa" },
-  { value: "Mansion", label: "Mansion" },
-  { value: "Duplex", label: "Duplex" },
-  { value: "Single Family Home", label: "Single Family Home" },
-  { value: "Multi-Family Home", label: "Multi-Family Home" },
-  { value: "other", label: "Other" },
-];
-
-// Format retry time for display
-const formatRetryTime = (seconds) => {
-  if (!seconds || isNaN(seconds)) return "a little while";
-  if (seconds < 60) {
-    return `${seconds} second${seconds !== 1 ? "s" : ""}`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
-  }
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    return `${hours} hour${hours !== 1 ? "s" : ""}`;
-  }
-  const days = Math.floor(hours / 24);
-  return `${days} day${days !== 1 ? "s" : ""}`;
-};
 export default function PropertySaleRequest({
   handleDialogClick,
   toggleModal,
   submitStatus,
   setSubmitStatus,
-  isRateLimit,
-  retryAfter,
 }) {
   useEffect(() => {
     if (submitStatus.isRateLimit && submitStatus.retryAfter) {
@@ -75,7 +32,7 @@ export default function PropertySaleRequest({
 
       return () => clearInterval(timer);
     }
-  }, [submitStatus.isRateLimit, submitStatus.retryAfter]);
+  }, [submitStatus.isRateLimit, submitStatus.retryAfter, setSubmitStatus]);
 
   const initialValues = {
     fullName: "",
@@ -88,9 +45,9 @@ export default function PropertySaleRequest({
     propertyAddress: "",
     propertyType: "",
     other: "",
-    bedrooms: "",
-    bathrooms: "",
-    squareFootage: "",
+    bedrooms: 0,
+    bathrooms: 0,
+    squareFootage: 0,
     reasonForSelling: "",
     timeline: "",
     additionalInfo: "",
@@ -110,11 +67,17 @@ export default function PropertySaleRequest({
       { type: "required", message: "Where is the property located" },
     ],
     propertyType: [{ type: "required", message: "What is the property type" }],
-
-    bedrooms: [{ type: "required", message: "How many bedrooms" }],
-    bathrooms: [{ type: "required", message: "How many bathrooms" }],
+    bedrooms: [
+      { type: "required", message: "How many bedrooms" },
+      { type: "number", message: "Bedrooms must be a number" },
+    ],
+    bathrooms: [
+      { type: "required", message: "How many bathrooms" },
+      { type: "number", message: "Bathrooms must be a number" },
+    ],
     squareFootage: [
       { type: "required", message: "What is the size of the property" },
+      { type: "number", message: "SquareFootage must be a number" },
     ],
     reasonForSelling: [{ type: "required", message: "Why are you selling" }],
     timeline: [
@@ -129,6 +92,7 @@ export default function PropertySaleRequest({
   const {
     values,
     errors,
+    setErrors,
     isSubmitting,
     handlePhoneChange,
     handleChange,
@@ -139,70 +103,14 @@ export default function PropertySaleRequest({
     touched,
   } = useFormValidation(initialValues, validationSchema);
 
-  const handleFormSubmit = async (formData) => {
-    console.log("Form submission triggered");
-    // Reset previous status
-    setSubmitStatus({
-      success: false,
-      message: "",
-      isRateLimit: false,
-      retryAfter: null,
+  const submitForm = async () => {
+    await handleFormSubmit({
+      formData: values,
+      setSubmitStatus,
+      serverSubmitAction: submitPropertySaleRequestForm,
+      setErrors,
+      reset,
     });
-    try {
-      console.log("Submitting form data", formData);
-      const response = await fetch("/api/property-sale", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-      if (response.status === 429) {
-        // Rate limit exceeded
-        const retryTime = formatRetryTime(result.retryAfter);
-        setSubmitStatus({
-          success: false,
-          message: `Too many submissions. Please try again in ${retryTime}.`,
-          isRateLimit: true,
-          retryAfter: result.retryAfter || 60,
-        });
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(result.message || "Submission failed");
-      }
-      // Simulate successful submission
-      setSubmitStatus({
-        success: true,
-        message:
-          "Property sale request submitted successfully! We'll contact you soon.",
-        isRateLimit: false,
-        retryAfter: null,
-      });
-
-      // Reset form after successful submission
-      setTimeout(() => {
-        reset();
-        setSubmitStatus({
-          success: false,
-          message: "",
-          isRateLimit: false,
-          retryAfter: null,
-        });
-      }, 3000);
-    } catch (error) {
-      console.log("error submitting the form", error);
-      setSubmitStatus({
-        success: false,
-        message:
-          error.message || "Failed to submit the request. Please try again.",
-        isRateLimit: false,
-        retryAfter: null,
-      });
-    }
   };
 
   return (
@@ -212,22 +120,24 @@ export default function PropertySaleRequest({
     >
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative">
         <div className="flex justify-between items-center border-b p-4 bg-blue-900">
-          <h2 className="text-xl font-bold text-white">PSRF</h2>
           <h2 className="text-xl font-bold text-white">
             Property Sale Request Form
           </h2>
-          <button
-            onClick={toggleModal}
-            className="text-blue-200 hover:text-white text-2xl cursor-pointer"
-          >
-            <X />
-          </button>
+          <div>
+            <button
+              onClick={toggleModal}
+              className="text-blue-200 hover:text-white text-2xl cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X />
+            </button>
+          </div>
         </div>
         <div className="p-6">
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleSubmit(handleFormSubmit);
+              handleSubmit(submitForm);
             }}
             className="space-y-8"
           >
@@ -288,8 +198,8 @@ export default function PropertySaleRequest({
                   label="Property Type"
                   required={true}
                   value={values.propertyType}
-                  options={propertyTypeOptions}
-                  placeholder="Select property type from the options or specify with other"
+                  options={typeOfProperty}
+                  placeholder="e.g. House, Apartment.."
                   onChange={handleChange}
                   onBlur={handleBlur}
                   disabled={isSubmitting}
@@ -297,7 +207,7 @@ export default function PropertySaleRequest({
                   touched={touched}
                 />
               </div>
-              {values.propertyType === "other" && (
+              {values.propertyType === "OTHER" && (
                 <div>
                   <InputField
                     title="other"
@@ -319,6 +229,7 @@ export default function PropertySaleRequest({
                   label="Property Address"
                   type="text"
                   required={true}
+                  placeholder="Paste a Google Maps link (use the share button to get link)"
                   value={values.propertyAddress}
                   onChange={handleChange}
                   onBlur={handleBlur}
@@ -333,6 +244,7 @@ export default function PropertySaleRequest({
                     title="bedrooms"
                     label="Bedrooms"
                     type="number"
+                    placeholder="0"
                     required={true}
                     value={values.bedrooms}
                     onChange={handleChange}
@@ -347,6 +259,7 @@ export default function PropertySaleRequest({
                     title="bathrooms"
                     label="Bathrooms"
                     type="number"
+                    placeholder="0"
                     required={true}
                     value={values.bathrooms}
                     onChange={handleChange}
@@ -361,6 +274,7 @@ export default function PropertySaleRequest({
                     title="squareFootage"
                     label="Sq. Ft."
                     type="number"
+                    placeholder="0"
                     required={true}
                     value={values.squareFootage}
                     onChange={handleChange}
@@ -431,7 +345,7 @@ export default function PropertySaleRequest({
                   submitStatus.success
                     ? "bg-green-100 text-green-800"
                     : submitStatus.isRateLimit
-                      ? "bg-orange-100 text-orange-600 "
+                      ? "bg-orange-100 text-orange-600"
                       : "bg-red-100 text-red-800"
                 }`}
               >
@@ -461,7 +375,6 @@ export default function PropertySaleRequest({
                 checked={values.agreeToPolicy}
                 onChange={(checked) => setValue("agreeToPolicy", checked)}
                 errors={errors}
-                link="/privacy-policy"
                 disabled={isSubmitting}
                 touched={touched}
               />
