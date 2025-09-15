@@ -21,6 +21,7 @@ export default function PrivacyPolicySwitch({
             checked={checked}
             onChange={onChange}
             disabled={disabled}
+            touched={touched}
             className={`group relative inline-flex w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
               disabled
                 ? "bg-gray-300 cursor-not-allowed opacity-50"

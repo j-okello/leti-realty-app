@@ -168,7 +168,6 @@ export function DataUsage() {
         <li>Name</li>
         <li>Phone number</li>
         <li>Email address</li>
-        <li>Phone number</li>
         <li>Property information (property sale request form)</li>
       </ul>
       <div>
@@ -204,7 +203,7 @@ export function DataUsage() {
           sent. However, if You do not accept Cookies, You may not be able to
           use some parts of our Service. Unless you have adjusted Your browser
           setting so that it will refuse Cookies, our Service may use{" "}
-          <Link href="/cookie-policy" className="text-blue-600">
+          <Link href="/legal/cookie-policy" className="text-blue-600">
             Cookies.
           </Link>
         </p>
@@ -364,7 +363,7 @@ export function DataManagement({ date }) {
         </p>
         <ul role="list" className="list-disc marker:text-sky-400">
           <li>Name: James O.</li>
-          <li>Email:consultintuitive@gmail.com</li>
+          <li>Email: consultintuitive@gmail.com</li>
         </ul>
         <p>
           If you are not satisfied with our handling of your complaint, you have

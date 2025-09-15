@@ -5,11 +5,11 @@ import Breadcrumb from "@/components/shared/Breadcrumb";
 import { Preamble, DataUsage, DataManagement } from "@/app/lib/Privacy";
 
 const breadcrumbItems = [
-  { label: "Legal", href: "/" },
+  { label: "Legal", href: "/legal" },
   { label: "Data-Privacy" },
 ];
 
-function formatDate(timestamp) {
+function formatDate() {
   const date = new Date("2025-09-12");
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
@@ -19,7 +19,7 @@ function formatDate(timestamp) {
 }
 
 export default function DataPrivacy() {
-  const lastUpdated = Date.now(); // or pull from data (e.g. content metadata)
+  const lastUpdated = Date.now();
 
   return (
     <section>
