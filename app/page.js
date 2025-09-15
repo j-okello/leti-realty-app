@@ -5,6 +5,7 @@ import properties from "@/app/lib/properties";
 import NewPropertyCard from "@/components/ui/home/NewPropertyList";
 import Description from "@/components/ui/home/Description";
 import ActionButtons from "@/components/ui/home/SectionAction";
+import CookieManager from "@/components/ui/cookie-tray/CookieManager";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { useRef } from "react";
 import PropertySaleRequestForm from "@/components/ui/home/Testimonials";
@@ -89,6 +90,20 @@ export default function Home() {
       {/* Description - Scroll triggered */}
       <AnimatedSection delay={0.4}>
         <Description />
+      </AnimatedSection>
+
+      <AnimatedSection delay={0.4}>
+        <CookieManager
+          popupProps={{
+            showDelay: 2000,
+            cookiePolicyUrl: "/legal/cookie-policy",
+            allowClose: false,
+          }}
+          buttonProps={{
+            position: "bottom-right",
+            className: "bg-blue-600 hover:bg-blue-700",
+          }}
+        />
       </AnimatedSection>
     </motion.div>
   );
