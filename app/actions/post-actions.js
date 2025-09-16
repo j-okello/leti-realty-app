@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 import rateLimitService from "../lib/rateLimit";
+import { headers } from "next/headers";
 
 const reasonForSelling = z.enum([
   "INVESTMENT_SALE",
@@ -129,6 +130,10 @@ const emailTemplates = {
     subject: "New Property Sale Request",
     template: "property_sale_request",
   },
+  PROPERTY_VIEWING_BOOKING_FORM: {
+    subject: "New Booking Form",
+    template: "property_viewing_booking_form",
+  },
 };
 // Email notification function (placeholder - implement based on your email service)
 async function sendFormSubmissionEmail(formType, data) {
@@ -152,31 +157,64 @@ async function sendFormSubmissionEmail(formType, data) {
   }
 }
 
+// Utility function to extract IP from headers
+function getClientIp(headersList) {
+  try {
+    if (!headersList) return "unknown";
+    // Check various headers that might contain the IP
+    const possibleHeaders = [
+      "x-forwarded-for",
+      "x-real-ip",
+      "x-client-ip",
+      "cf-connecting-ip", // Cloudflare
+      "fastly-client-ip", // Fastly
+      "true-client-ip", // Akamai and Cloudflare
+      "x-cluster-client-ip",
+    ];
+
+    for (const header of possibleHeaders) {
+      const value = headersList.get(header);
+      if (value) {
+        const ips = value.split(",").map((ip) => ip.trim());
+        const clientIp = ips[0];
+        if (clientIp && clientIp !== "unknown") {
+          return clientIp;
+        }
+      }
+    }
+
+    return "127.0.0.1"; // fallback for local dev
+  } catch (error) {
+    console.error("Error extracting client IP:", error);
+    return "unknown";
+  }
+}
+
 //Handle form submission
 async function handleFormSubmission({
   formData,
   schema,
   createFunction,
   formType,
-  ipAddress,
 }) {
-  const clientIp = ipAddress || "unknown";
-  console.log(`Processing ${formType} submission from IP: ${clientIp}`);
-
-  //rateLimiting Check
-  const rateLimitCheck = await rateLimitService.checkRateLimit(clientIp);
-  if (!rateLimitCheck.allowed) {
-    return {
-      success: false,
-      errors: `Too many requests. Please try again in ${rateLimitCheck.retryAfter} seconds.`,
-      isRateLimit: true,
-      retryAfter: rateLimitCheck.retryAfter,
-      remainingPoints: rateLimitCheck.remainingPoints,
-      limit: rateLimitCheck.limit,
-    };
-  }
-
   try {
+    // Get headers inside the try block for Vercel compatibility
+    const headersList = headers();
+    const clientIp = getClientIp(headersList);
+    console.log(`Processing ${formType} submission from IP: ${clientIp}`);
+
+    //rateLimiting Check
+    const rateLimitCheck = await rateLimitService.checkRateLimit(clientIp);
+    if (!rateLimitCheck.allowed) {
+      return {
+        success: false,
+        errors: `Too many requests. Please try again in ${rateLimitCheck.retryAfter} seconds.`,
+        isRateLimit: true,
+        retryAfter: rateLimitCheck.retryAfter,
+        remainingPoints: rateLimitCheck.remainingPoints,
+        limit: rateLimitCheck.limit,
+      };
+    }
     // Inject ipAddress into the data before validation
     const enrichedData = { ...formData, ipAddress: clientIp };
 
@@ -203,49 +241,12 @@ async function handleFormSubmission({
   }
 }
 
-// Utility function to extract IP from headers
-function getClientIp(headers) {
-  try {
-    if (!headers) return "unknown";
-    // Check various headers that might contain the IP
-    const possibleHeaders = [
-      "x-forwarded-for",
-      "x-real-ip",
-      "x-client-ip",
-      "cf-connecting-ip", // Cloudflare
-      "fastly-client-ip", // Fastly
-      "true-client-ip", // Akamai and Cloudflare
-      "x-cluster-client-ip",
-    ];
-
-    for (const header of possibleHeaders) {
-      const value = headers[header] || headers[header.toUpperCase()];
-      if (value) {
-        const ips = value.split(",").map((ip) => ip.trim());
-        return ips[0]; // Return the first IP in the chain
-      }
-    }
-
-    if (headers.get) {
-      const forwardedFor = headers.get("x-forwarded-for");
-      if (forwardedFor) return forwardedFor.split(",")[0].trim();
-    }
-
-    return "127.0.0.1"; // fallback for local dev
-  } catch (error) {
-    console.error("Error extracting client IP:", error);
-    return "unknown";
-  }
-}
-
 // Specific action for contact form
-export async function submitContactForm(formData, headers = {}) {
-  const ipAddress = getClientIp(headers);
-
+export async function submitContactForm(formData, prevState) {
   return handleFormSubmission({
     formData,
     schema: contactSchema,
-    createFunction: async (data, clientIp) => {
+    createFunction: async (data) => {
       const { phone, ...contactData } = data;
       const fullNumber = `${phone.phoneCode}${phone.number}`;
 
@@ -260,7 +261,6 @@ export async function submitContactForm(formData, headers = {}) {
               fullNumber: fullNumber,
             },
           },
-          ipAddress: clientIp,
         },
         include: {
           phone: true,
@@ -268,18 +268,15 @@ export async function submitContactForm(formData, headers = {}) {
       });
     },
     formType: "Contact Form",
-    ipAddress,
   });
 }
 
 // Specific action for Property Sale Request form
-export async function submitPropertySaleRequestForm(formData, headers = {}) {
-  const ipAddress = getClientIp(headers);
-
+export async function submitPropertySaleRequestForm(formData, prevState) {
   return handleFormSubmission({
     formData,
     schema: propertySaleRequestSchema,
-    createFunction: async (data, clientIp) => {
+    createFunction: async (data) => {
       const { phone, ...saleData } = data;
       const fullNumber = `${phone.phoneCode}${phone.number}`;
 
@@ -294,7 +291,6 @@ export async function submitPropertySaleRequestForm(formData, headers = {}) {
               fullNumber: fullNumber,
             },
           },
-          ipAddress: clientIp,
         },
         include: {
           phone: true,
@@ -302,18 +298,15 @@ export async function submitPropertySaleRequestForm(formData, headers = {}) {
       });
     },
     formType: "Property Sale Request",
-    ipAddress,
   });
 }
 
 //Specific Acton for Booking Form
-export async function submitBookingForm(formData, headers = {}) {
-  const ipAddress = getClientIp(headers);
-
+export async function submitBookingForm(formData, prevState) {
   return handleFormSubmission({
     formData,
     schema: bookingSchema,
-    createFunction: async (data, clientIp) => {
+    createFunction: async (data) => {
       const { phone, property, ...bookingData } = data;
       console.log(data);
       const fullNumber = `${phone.phoneCode}${phone.number}`;
@@ -322,7 +315,6 @@ export async function submitBookingForm(formData, headers = {}) {
         data: {
           ...bookingData,
           property: property,
-          ipAddress: clientIp,
           phone: {
             create: {
               code: phone.code,
@@ -338,7 +330,6 @@ export async function submitBookingForm(formData, headers = {}) {
       });
     },
     formType: "Book a Viewing Form",
-    ipAddress,
   });
 }
 // Optional: Add a utility function to check rate limit status

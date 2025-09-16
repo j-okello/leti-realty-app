@@ -31,6 +31,7 @@ export default function RootLayout({ children }) {
         <NavBarMenu />
         {children}
         <BackToTopButton />
+
         <Footer />
         <FooterBanner />
       </body>

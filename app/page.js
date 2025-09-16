@@ -92,19 +92,21 @@ export default function Home() {
         <Description />
       </AnimatedSection>
 
-      <AnimatedSection delay={0.4}>
-        <CookieManager
-          popupProps={{
-            showDelay: 2000,
-            cookiePolicyUrl: "/legal/cookie-policy",
-            allowClose: false,
-          }}
-          buttonProps={{
-            position: "bottom-right",
-            className: "bg-blue-600 hover:bg-blue-700",
-          }}
-        />
-      </AnimatedSection>
+      {
+        <AnimatedSection delay={0.4}>
+          <CookieManager
+            popupProps={{
+              showDelay: 2000,
+              cookiePolicyUrl: "/legal/cookie-policy",
+              allowClose: false,
+            }}
+            buttonProps={{
+              position: "bottom-right",
+              className: "bg-blue-600 hover:bg-blue-700",
+            }}
+          />
+        </AnimatedSection>
+      }
     </motion.div>
   );
 }

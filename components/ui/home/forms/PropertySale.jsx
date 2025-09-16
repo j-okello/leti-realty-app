@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import InputField from "@/components/shared/FormField";
 import PrivacyPolicySwitch from "@/components/shared/PolicyButton";
 import useFormValidation from "@/app/hooks/useFormValidation";
+import { useCookieConsent } from "@/app/hooks/cookieConsent";
 import PhoneInput from "@/components/shared/PhoneSelect";
 import { Field } from "@headlessui/react";
 import { X } from "lucide-react";
