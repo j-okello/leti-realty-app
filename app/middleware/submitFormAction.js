@@ -1,5 +1,3 @@
-import getClientIp from "./clientIP";
-
 // Format retry time for display
 const formatRetryTime = (seconds) => {
   if (!seconds || isNaN(seconds)) return "a little while";
@@ -37,16 +35,8 @@ const handleFormSubmit = async ({
   try {
     console.log("Submitting form data", formData);
 
-    // Get client IP for headers if needed
-    const clientIp = await getClientIp();
-    const headers = {
-      "X-Client-IP": clientIp,
-      "User-Agent": navigator.userAgent,
-      "X-Forwarded-For": clientIp,
-    };
-
     // Call the server action
-    const result = await serverSubmitAction(formData, headers);
+    const result = await serverSubmitAction(formData);
 
     console.log("Server response:", result);
 

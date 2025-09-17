@@ -199,12 +199,13 @@ async function handleFormSubmission({
 }) {
   try {
     // Get headers inside the try block for Vercel compatibility
-    const headersList = headers();
+    const headersList = await headers();
     const clientIp = getClientIp(headersList);
     console.log(`Processing ${formType} submission from IP: ${clientIp}`);
 
     //rateLimiting Check
     const rateLimitCheck = await rateLimitService.checkRateLimit(clientIp);
+    console.log("[RATE_LIMIT] Check result:", rateLimitCheck);
     if (!rateLimitCheck.allowed) {
       return {
         success: false,
@@ -242,11 +243,11 @@ async function handleFormSubmission({
 }
 
 // Specific action for contact form
-export async function submitContactForm(formData, prevState) {
+export async function submitContactForm(formData) {
   return handleFormSubmission({
     formData,
     schema: contactSchema,
-    createFunction: async (data) => {
+    createFunction: async (data, clientIp) => {
       const { phone, ...contactData } = data;
       const fullNumber = `${phone.phoneCode}${phone.number}`;
 
@@ -261,6 +262,7 @@ export async function submitContactForm(formData, prevState) {
               fullNumber: fullNumber,
             },
           },
+          ipAddress: clientIp,
         },
         include: {
           phone: true,
@@ -272,7 +274,7 @@ export async function submitContactForm(formData, prevState) {
 }
 
 // Specific action for Property Sale Request form
-export async function submitPropertySaleRequestForm(formData, prevState) {
+export async function submitPropertySaleRequestForm(formData, clientIp) {
   return handleFormSubmission({
     formData,
     schema: propertySaleRequestSchema,
@@ -291,6 +293,7 @@ export async function submitPropertySaleRequestForm(formData, prevState) {
               fullNumber: fullNumber,
             },
           },
+          ipAddress: clientIp,
         },
         include: {
           phone: true,
@@ -302,7 +305,7 @@ export async function submitPropertySaleRequestForm(formData, prevState) {
 }
 
 //Specific Acton for Booking Form
-export async function submitBookingForm(formData, prevState) {
+export async function submitBookingForm(formData, clientIp) {
   return handleFormSubmission({
     formData,
     schema: bookingSchema,
@@ -323,6 +326,7 @@ export async function submitBookingForm(formData, prevState) {
               fullNumber: fullNumber,
             },
           },
+          ipAddress: clientIp,
         },
         include: {
           phone: true,
