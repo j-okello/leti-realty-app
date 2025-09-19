@@ -1,9 +1,9 @@
 {
   "functions": {
-    "api/**/*.[jt]s": {
+    ".next/server/app/**/route.[jt]s": {
       "includeFiles": ".prisma/client/**"
     },
-    ".next/server/chunks/**/*": {
+    ".next/server/chunks/**": {
       "includeFiles": ".prisma/client/**"
     }
   }
