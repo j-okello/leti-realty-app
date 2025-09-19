@@ -42,3 +42,4 @@ next-env.d.ts
 
 #collections
 .collections
+.vercel

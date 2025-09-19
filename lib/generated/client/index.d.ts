@@ -6757,8 +6757,8 @@ export namespace Prisma {
     fullName: string | null
     email: string | null
     property: string | null
-    bookingDate: string | null
-    bookingTime: string | null
+    bookingDate: Date | null
+    bookingTime: Date | null
     agreeToPolicy: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6770,8 +6770,8 @@ export namespace Prisma {
     fullName: string | null
     email: string | null
     property: string | null
-    bookingDate: string | null
-    bookingTime: string | null
+    bookingDate: Date | null
+    bookingTime: Date | null
     agreeToPolicy: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6910,8 +6910,8 @@ export namespace Prisma {
     fullName: string
     email: string
     property: string
-    bookingDate: string
-    bookingTime: string
+    bookingDate: Date
+    bookingTime: Date
     agreeToPolicy: boolean
     createdAt: Date
     updatedAt: Date
@@ -7011,8 +7011,8 @@ export namespace Prisma {
       fullName: string
       email: string
       property: string
-      bookingDate: string
-      bookingTime: string
+      bookingDate: Date
+      bookingTime: Date
       agreeToPolicy: boolean
       createdAt: Date
       updatedAt: Date
@@ -7445,8 +7445,8 @@ export namespace Prisma {
     readonly fullName: FieldRef<"BookingForm", 'String'>
     readonly email: FieldRef<"BookingForm", 'String'>
     readonly property: FieldRef<"BookingForm", 'String'>
-    readonly bookingDate: FieldRef<"BookingForm", 'String'>
-    readonly bookingTime: FieldRef<"BookingForm", 'String'>
+    readonly bookingDate: FieldRef<"BookingForm", 'DateTime'>
+    readonly bookingTime: FieldRef<"BookingForm", 'DateTime'>
     readonly agreeToPolicy: FieldRef<"BookingForm", 'Boolean'>
     readonly createdAt: FieldRef<"BookingForm", 'DateTime'>
     readonly updatedAt: FieldRef<"BookingForm", 'DateTime'>
@@ -18799,8 +18799,8 @@ export namespace Prisma {
     fullName?: StringFilter<"BookingForm"> | string
     email?: StringFilter<"BookingForm"> | string
     property?: StringFilter<"BookingForm"> | string
-    bookingDate?: StringFilter<"BookingForm"> | string
-    bookingTime?: StringFilter<"BookingForm"> | string
+    bookingDate?: DateTimeFilter<"BookingForm"> | Date | string
+    bookingTime?: DateTimeFilter<"BookingForm"> | Date | string
     agreeToPolicy?: BoolFilter<"BookingForm"> | boolean
     createdAt?: DateTimeFilter<"BookingForm"> | Date | string
     updatedAt?: DateTimeFilter<"BookingForm"> | Date | string
@@ -18831,8 +18831,8 @@ export namespace Prisma {
     fullName?: StringFilter<"BookingForm"> | string
     email?: StringFilter<"BookingForm"> | string
     property?: StringFilter<"BookingForm"> | string
-    bookingDate?: StringFilter<"BookingForm"> | string
-    bookingTime?: StringFilter<"BookingForm"> | string
+    bookingDate?: DateTimeFilter<"BookingForm"> | Date | string
+    bookingTime?: DateTimeFilter<"BookingForm"> | Date | string
     agreeToPolicy?: BoolFilter<"BookingForm"> | boolean
     createdAt?: DateTimeFilter<"BookingForm"> | Date | string
     updatedAt?: DateTimeFilter<"BookingForm"> | Date | string
@@ -18863,8 +18863,8 @@ export namespace Prisma {
     fullName?: StringWithAggregatesFilter<"BookingForm"> | string
     email?: StringWithAggregatesFilter<"BookingForm"> | string
     property?: StringWithAggregatesFilter<"BookingForm"> | string
-    bookingDate?: StringWithAggregatesFilter<"BookingForm"> | string
-    bookingTime?: StringWithAggregatesFilter<"BookingForm"> | string
+    bookingDate?: DateTimeWithAggregatesFilter<"BookingForm"> | Date | string
+    bookingTime?: DateTimeWithAggregatesFilter<"BookingForm"> | Date | string
     agreeToPolicy?: BoolWithAggregatesFilter<"BookingForm"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"BookingForm"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"BookingForm"> | Date | string
@@ -19847,8 +19847,8 @@ export namespace Prisma {
     fullName: string
     email: string
     property: string
-    bookingDate: string
-    bookingTime: string
+    bookingDate: Date | string
+    bookingTime: Date | string
     agreeToPolicy: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19860,8 +19860,8 @@ export namespace Prisma {
     fullName: string
     email: string
     property: string
-    bookingDate: string
-    bookingTime: string
+    bookingDate: Date | string
+    bookingTime: Date | string
     agreeToPolicy: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19873,8 +19873,8 @@ export namespace Prisma {
     fullName?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     property?: StringFieldUpdateOperationsInput | string
-    bookingDate?: StringFieldUpdateOperationsInput | string
-    bookingTime?: StringFieldUpdateOperationsInput | string
+    bookingDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    bookingTime?: DateTimeFieldUpdateOperationsInput | Date | string
     agreeToPolicy?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19886,8 +19886,8 @@ export namespace Prisma {
     fullName?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     property?: StringFieldUpdateOperationsInput | string
-    bookingDate?: StringFieldUpdateOperationsInput | string
-    bookingTime?: StringFieldUpdateOperationsInput | string
+    bookingDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    bookingTime?: DateTimeFieldUpdateOperationsInput | Date | string
     agreeToPolicy?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19899,8 +19899,8 @@ export namespace Prisma {
     fullName: string
     email: string
     property: string
-    bookingDate: string
-    bookingTime: string
+    bookingDate: Date | string
+    bookingTime: Date | string
     agreeToPolicy: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19912,8 +19912,8 @@ export namespace Prisma {
     fullName?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     property?: StringFieldUpdateOperationsInput | string
-    bookingDate?: StringFieldUpdateOperationsInput | string
-    bookingTime?: StringFieldUpdateOperationsInput | string
+    bookingDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    bookingTime?: DateTimeFieldUpdateOperationsInput | Date | string
     agreeToPolicy?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19924,8 +19924,8 @@ export namespace Prisma {
     fullName?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     property?: StringFieldUpdateOperationsInput | string
-    bookingDate?: StringFieldUpdateOperationsInput | string
-    bookingTime?: StringFieldUpdateOperationsInput | string
+    bookingDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    bookingTime?: DateTimeFieldUpdateOperationsInput | Date | string
     agreeToPolicy?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22757,8 +22757,8 @@ export namespace Prisma {
     fullName: string
     email: string
     property: string
-    bookingDate: string
-    bookingTime: string
+    bookingDate: Date | string
+    bookingTime: Date | string
     agreeToPolicy: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22769,8 +22769,8 @@ export namespace Prisma {
     fullName: string
     email: string
     property: string
-    bookingDate: string
-    bookingTime: string
+    bookingDate: Date | string
+    bookingTime: Date | string
     agreeToPolicy: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22797,8 +22797,8 @@ export namespace Prisma {
     fullName?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     property?: StringFieldUpdateOperationsInput | string
-    bookingDate?: StringFieldUpdateOperationsInput | string
-    bookingTime?: StringFieldUpdateOperationsInput | string
+    bookingDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    bookingTime?: DateTimeFieldUpdateOperationsInput | Date | string
     agreeToPolicy?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22809,8 +22809,8 @@ export namespace Prisma {
     fullName?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
     property?: StringFieldUpdateOperationsInput | string
-    bookingDate?: StringFieldUpdateOperationsInput | string
-    bookingTime?: StringFieldUpdateOperationsInput | string
+    bookingDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    bookingTime?: DateTimeFieldUpdateOperationsInput | Date | string
     agreeToPolicy?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
