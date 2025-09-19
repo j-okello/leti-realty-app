@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/**/*.[jt]s": {
+      "includeFiles": ".prisma/client/**"
+    },
+    ".next/server/chunks/**/*": {
+      "includeFiles": ".prisma/client/**"
+    }
+  }
+}
