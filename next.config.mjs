@@ -17,15 +17,6 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // Fix Prisma bundling issues
-    if (isServer) {
-      config.externals.push("@prisma/client");
-      config.externals.push("@prisma/engines");
-    }
-
-    return config;
-  },
 };
 
 export default nextConfig;
