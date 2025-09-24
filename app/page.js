@@ -7,8 +7,9 @@ import Description from "@/components/ui/home/Description";
 import ActionButtons from "@/components/ui/home/SectionAction";
 import CookieManager from "@/components/ui/cookie-tray/CookieManager";
 import { motion, useAnimation, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import PropertySaleRequestForm from "@/components/ui/home/Testimonials";
+import PageLoader from "@/components/shared/PageLoader";
 
 // Animation variants
 const containerVariants = {
@@ -65,7 +66,22 @@ function AnimatedSection({ children, delay = 0 }) {
   );
 }
 export default function Home() {
-  return (
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    //wait for full page load
+    const handleLoad = () => {
+      setIsLoading(false);
+    };
+    if (document.readyState === "complete") {
+      setIsLoading(false);
+    } else {
+      window.addEventListener("load", handleLoad);
+    }
+    return () => window.removeEventListener("load", handleLoad);
+  }, []);
+  return isLoading ? (
+    <PageLoader />
+  ) : (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       {/* Hero Section - Immediate animation */}
       <motion.div variants={sectionVariants} transition={{ duration: 0.8 }}>
