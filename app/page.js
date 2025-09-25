@@ -26,14 +26,14 @@ const containerVariants = {
 const sectionVariants = {
   hidden: {
     opacity: 0,
-    y: 50,
+    y: 30,
   },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.6,
-      ease: "easeOut",
+      duration: 0.7,
+      ease: [0.25, 0.46, 0.45, 0.94],
     },
   },
 };
@@ -67,20 +67,13 @@ function AnimatedSection({ children, delay = 0 }) {
 }
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    //wait for full page load
-    const handleLoad = () => {
-      setIsLoading(false);
-    };
-    if (document.readyState === "complete") {
-      setIsLoading(false);
-    } else {
-      window.addEventListener("load", handleLoad);
-    }
-    return () => window.removeEventListener("load", handleLoad);
-  }, []);
+
+  const handleLoaderComplete = () => {
+    setIsLoading(false);
+  };
+
   return isLoading ? (
-    <PageLoader />
+    <PageLoader duration={3000} onComplete={handleLoaderComplete} />
   ) : (
     <motion.div variants={containerVariants} initial="hidden" animate="visible">
       {/* Hero Section - Immediate animation */}

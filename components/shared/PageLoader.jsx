@@ -12,6 +12,8 @@ const PageLoader = ({
   ],
   duration = 3000, //ms per messages
   size = "large", // "small", "medium", "large"
+  onComplete,
+  autoComplete = true,
 }) => {
   const sizeClasses = {
     small: "w-16 h-16",
@@ -23,43 +25,48 @@ const PageLoader = ({
   const [fade, setFade] = useState(true);
   const [progressKey, setProgressKey] = useState(0); // reset bar
 
+  // Text cycling effect
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false); // start fade-out
+    const textInterval = setInterval(() => {
+      setFade(false);
       setTimeout(() => {
-        setIndex((prev) => (prev + 1) % loadingText.length);
-        setFade(true); // fade back in
-        setProgressKey((prev) => prev + 1); // restart progress bar
-      }, 400); // match fade duration
+        const nextIndex = (index + 1) % loadingText.length;
+        setIndex(nextIndex);
+        setFade(true);
+        setProgressKey((prev) => prev + 1);
+
+        // Call onComplete after last message
+        if (autoComplete && nextIndex === loadingText.length - 1) {
+          setTimeout(() => {
+            onComplete?.();
+          }, duration - 400);
+        }
+      }, 500); // Match fade-out duration
     }, duration);
 
-    return () => clearInterval(interval);
-  }, [loadingText.length, duration]);
-
-  const LogoPlaceholder = () => (
-    <div
-      className={`${sizeClasses[size]} bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg`}
-    >
-      <div className="text-white font-bold text-2xl">LETI REALTY</div>
-    </div>
-  );
+    return () => clearInterval(textInterval);
+  }, [index, duration, loadingText.length, onComplete, autoComplete]);
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Loading content"
+      className="fixed inset-0 bg-white bg-opacity-95 backdrop-blur-sm flex items-center justify-center z-50"
+    >
       <div className="text-center">
         {/* Logo Container with Pulse Animation */}
         <div className="relative mb-6">
           <div className="animate-pulse">
-            {logoSrc ? (
-              <Image
-                src={logoSrc}
-                alt={logoAlt}
-                sizes={128}
-                className={`${sizeClasses[size]} object-contain mx-auto`}
-              />
-            ) : (
-              <LogoPlaceholder />
-            )}
+            <Image
+              src={logoSrc}
+              alt={logoAlt}
+              width={128}
+              height={128}
+              className={`${sizeClasses[size]} object-contain mx-auto`}
+              loading="lazy"
+              priority={false}
+            />
           </div>
         </div>
 
@@ -73,26 +80,33 @@ const PageLoader = ({
         </div>
 
         {/* Progress Dots */}
-        <div className="flex justify-center space-x-2">
-          <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce"></div>
-          <div
-            className="w-2 h-2 bg-red-600 rounded-full animate-bounce"
-            style={{ animationDelay: "0.1s" }}
-          ></div>
-          <div
-            className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"
-            style={{ animationDelay: "0.2s" }}
-          ></div>
+        <div className="flex justify-center space-x-2 mb-4">
+          {[0, 1, 2].map((dotIndex) => (
+            <div
+              key={dotIndex}
+              className="w-2 h-2 rounded-full animate-bounce"
+              style={{
+                backgroundColor:
+                  dotIndex === 0
+                    ? "#1e3a8a"
+                    : dotIndex === 1
+                      ? "#dc2626"
+                      : "#2563eb",
+                animationDelay: `${dotIndex * 0.1}s`,
+              }}
+            />
+          ))}
         </div>
+
         {/* Synced Progress Bar */}
         <div className="mt-6 w-64 bg-gray-200 rounded-full h-2 mx-auto overflow-hidden">
           <div
-            key={progressKey} // force restart each cycle
-            className="bg-gradient-to-r from-blue-600 to-red-500 h-2 rounded-full"
+            key={progressKey}
+            className="bg-gradient-to-r from-blue-900 via-blue-600 to-blue-300 h-2 rounded-full"
             style={{
               animation: `progressFill ${duration}ms linear forwards`,
             }}
-          ></div>
+          />
         </div>
       </div>
       {/* Keyframes for Progress Bar */}
